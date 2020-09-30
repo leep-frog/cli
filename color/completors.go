@@ -1,7 +1,7 @@
 package color
 
 import (
-	"commands"
+	"github.com/leep-frog/cli/commands"
 )
 
 type fetcher struct{}
