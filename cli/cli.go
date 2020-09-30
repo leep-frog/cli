@@ -1,18 +1,16 @@
 package cli
 
 import (
-	"commands"
-	"emacs"
 	"fmt"
 
-	"cache"
-	"todo"
+	"github.com/leep-frog/cli/cache"
+	"github.com/leep-frog/cli/commands"
 )
 
 var (
 	AllCommands = []CLI{
-		&todo.List{},
-		&emacs.Emacs{},
+		//&todo.List{},
+		//&emacs.Emacs{},
 	}
 )
 
