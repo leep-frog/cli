@@ -114,8 +114,9 @@ func (f *Format) Format(s string) string {
 }
 
 func (c Color) Format(s string) string {
-	if code, ok := colorMap[c]; ok {
-		return code + s + reset
+	code := strings.ToLower(c)
+	if colorPrefix, ok := colorMap[code]; ok {
+		return colorPrefix + s + reset
 	}
 	return s
 }
