@@ -195,6 +195,51 @@ func TestFetchers(t *testing.T) {
 				"dir1//",
 			},
 		},
+		{
+			name: "file fetcher shows contents of directory when ending with a separator",
+			f:    &FileFetcher{},
+			args: []string{"testing/dir1/"},
+			want: []string{
+				"first.txt",
+				"fourth.py",
+				"second.py",
+				"third.go",
+			},
+		},
+		{
+			name: "file fetcher completes to directory when ending with a separator and when starting dir specified",
+			f: &FileFetcher{
+				Directory: "testing",
+			},
+			args: []string{"dir1/"},
+			want: []string{
+				"first.txt",
+				"fourth.py",
+				"second.py",
+				"third.go",
+			},
+		},
+		{
+			name: "file fetcher only shows basenames when multiple options",
+			f:    &FileFetcher{},
+			args: []string{"testing/di"},
+			want: []string{
+				"dir1/",
+				"dir2/",
+				"dir3/",
+			},
+		},
+		{
+			name: "file fetcher only shows basenames when multiple options and starting dir",
+			f: &FileFetcher{
+				Directory: "testing/dir1",
+			},
+			args: []string{"f"},
+			want: []string{
+				"first.txt",
+				"fourth.py",
+			},
+		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			oldAbs := filepathAbs

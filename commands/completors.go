@@ -91,7 +91,7 @@ type FileFetcher struct {
 	IgnoreDirectories bool
 }
 
-func (ff *FileFetcher) PrefixFilter() bool { return true }
+func (ff *FileFetcher) PrefixFilter() bool { return false }
 
 // TODO: should these be allowed to return errors?
 func (ff *FileFetcher) Fetch(value *Value, args, flags map[string]*Value) []string {
