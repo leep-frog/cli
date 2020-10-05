@@ -37,6 +37,14 @@ func TestUsage(t *testing.T) {
 				"prefixes", "ALPHAS", "\n",
 				"sometimes", "OPT_GROUP", "[", "OPT_GROUP", "OPT_GROUP", "OPT_GROUP", "]", "\n",
 				"squo", "WHOSE", "WHOSE", "\n",
+				"valueTypes",
+				"float", "REQ", "[", "OPT", "]", "--vFlag|-v", "FLAG_VALUE", "\n",
+				"floatList", "REQ", "REQ", "[", "REQ", "]", "--vFlag|-v", "FLAG_VALUE", "FLAG_VALUE", "[", "FLAG_VALUE", "]", "\n",
+				"int", "REQ", "[", "OPT", "]", "--vFlag|-v", "FLAG_VALUE", "\n",
+				"intList", "REQ", "REQ", "[", "REQ", "]", "--vFlag|-v", "FLAG_VALUE", "FLAG_VALUE", "[", "FLAG_VALUE", "]", "\n",
+				"string", "REQ", "[", "OPT", "]", "--vFlag|-v", "FLAG_VALUE", "\n",
+				"stringList", "REQ", "REQ", "[", "REQ", "]", "--vFlag|-v", "FLAG_VALUE", "FLAG_VALUE", "[", "FLAG_VALUE", "]", "\n",
+				"\n",
 				"wave", "ANY", "ANY", "--yourFlag|-y", "FLAG_VALUE", "FLAG_VALUE", "FLAG_VALUE", "\n",
 			},
 		},
@@ -44,8 +52,7 @@ func TestUsage(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			got := test.cmd.Usage()
 			if diff := cmp.Diff(test.want, got); diff != "" {
-				_ = got
-				//t.Errorf("command.Usage() returned diff (-want, +got):\n%s", diff)
+				t.Errorf("command.Usage() returned diff (-want, +got):\n%s", diff)
 			}
 		})
 	}
