@@ -105,9 +105,11 @@ func (ff *FileFetcher) Fetch(value *Value, args, flags map[string]*Value) []stri
 			continue
 		}
 
-		if ff.Regexp == nil || ff.Regexp.MatchString(f.Name()) {
-			suggestions = append(suggestions, f.Name())
+		if ff.Regexp != nil && !ff.Regexp.MatchString(f.Name()) {
+			continue
 		}
+
+		suggestions = append(suggestions, f.Name())
 	}
 
 	return suggestions
