@@ -93,7 +93,8 @@ func (ff *FileFetcher) Fetch(value *Value, args, flags map[string]*Value) []stri
 		lastArg = (*slPtr)[len(*slPtr)-1]
 	}
 
-	dir, err := filepathAbs(ff.Directory)
+	laDir, laFile := filepath.Split(lastArg)
+	dir, err := filepathAbs(filepath.Join(ff.Directory, laDir))
 	if err != nil {
 		return nil
 	}
@@ -114,7 +115,7 @@ func (ff *FileFetcher) Fetch(value *Value, args, flags map[string]*Value) []stri
 			continue
 		}
 
-		if !strings.HasPrefix(f.Name(), lastArg) {
+		if !strings.HasPrefix(f.Name(), laFile) {
 			continue
 		}
 
@@ -126,10 +127,18 @@ func (ff *FileFetcher) Fetch(value *Value, args, flags map[string]*Value) []stri
 		}
 	}
 
-	if len(suggestions) == 1 && onlyDir {
-		suggestions = append(suggestions, fmt.Sprintf("%s/", suggestions[0]))
-	}
+	// If only 1 suggestion matching, then we want it to autocomplete the whole thing.
+	if len(suggestions) == 1 {
+		// Want to autocomplete the full path
+		// Note: we can't use filepath.Join here because it cleans up the path
+		suggestions[0] = fmt.Sprintf("%s%s", laDir, suggestions[0])
 
+		if onlyDir {
+			// This does dir1/ and dir1// so that the user's command is autocompleted to dir1/
+			// without a space after it.
+			suggestions = append(suggestions, fmt.Sprintf("%s/", suggestions[0]))
+		}
+	}
 	return suggestions
 }
 

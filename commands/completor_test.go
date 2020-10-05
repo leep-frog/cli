@@ -177,6 +177,15 @@ func TestFetchers(t *testing.T) {
 		},
 		{
 			name: "file fetcher completes to directory",
+			f:    &FileFetcher{},
+			args: []string{"testing/dir1"},
+			want: []string{
+				"testing/dir1/",
+				"testing/dir1//",
+			},
+		},
+		{
+			name: "file fetcher completes to directory when starting dir specified",
 			f: &FileFetcher{
 				Directory: "testing",
 			},
