@@ -11,6 +11,8 @@ func (f *fetcher) Fetch(value *commands.Value, args, flags map[string]*commands.
 	return Attributes()
 }
 
+func (f *fetcher) PrefixFilter() bool { return true }
+
 func Completor() *commands.Completor {
 	return &commands.Completor{
 		Distinct:          true,
