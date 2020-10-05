@@ -102,8 +102,9 @@ type TerminusCommand struct {
 
 // CommandBranch is a command that splits into other commands depending on positional arguments.
 type CommandBranch struct {
-	Subcommands     map[string]Command
-	TerminusCommand *TerminusCommand
+	Subcommands                  map[string]Command
+	TerminusCommand              *TerminusCommand
+	IgnoreSubcommandAutocomplete bool
 }
 
 // Usage returns the usage info
@@ -154,8 +155,11 @@ func (cb *CommandBranch) Complete(args []string) []string {
 	// Return subcommands and terminus command suggestions if only one argument.
 	if len(args) <= 1 {
 		suggestions := make([]string, 0, len(cb.Subcommands))
-		for k := range cb.Subcommands {
-			suggestions = append(suggestions, k)
+
+		if !cb.IgnoreSubcommandAutocomplete {
+			for k := range cb.Subcommands {
+				suggestions = append(suggestions, k)
+			}
 		}
 
 		if cb.TerminusCommand != nil {

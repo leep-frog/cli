@@ -32,6 +32,7 @@ func TestUsage(t *testing.T) {
 				"basic", "POS_1", "PLACE_2", "--american|-a", "--another", "FLAG_VALUE", "--state|-s", "FLAG_VALUE", "\n",
 				"basically", "ANYTHING", "ANYTHING", "ANYTHING", "\n",
 				"beginner", "\n", "dquo", "WHOSE", "WHOSE", "\n",
+				"ignore", "alpha", "\n", "ayo", "\n", "AIGHT", "\n",
 				"intermediate", "SYLLABLE", "SYLLABLE", "SYLLABLE", "--american|-a", "--another", "FLAG_VALUE", "--state|-s", "FLAG_VALUE", "\n",
 				"mw", "ALPHA", "ALPHA", "\n",
 				"prefixes", "ALPHAS", "\n",
@@ -149,6 +150,18 @@ func branchCommand(executor Executor, completor *Completor, opts ...ArgOpt) Comm
 				},
 				Flags: []Flag{
 					StringListFlag("yourFlag", 'y', 3, 0, completor, opts...),
+				},
+			},
+			"ignore": &CommandBranch{
+				IgnoreSubcommandAutocomplete: true,
+				Subcommands: map[string]Command{
+					"alpha": &TerminusCommand{},
+					"ayo":   &TerminusCommand{},
+				},
+				TerminusCommand: &TerminusCommand{
+					Args: []Arg{
+						StringArg("aight", true, completor, opts...),
+					},
 				},
 			},
 			"valueTypes": &CommandBranch{
@@ -1394,6 +1407,7 @@ func TestAutocomplete(t *testing.T) {
 				"basically",
 				"beginner",
 				"dquo",
+				"ignore",
 				"intermediate",
 				"mw",
 				"prefixes",
@@ -1412,6 +1426,7 @@ func TestAutocomplete(t *testing.T) {
 				"basically",
 				"beginner",
 				"dquo",
+				"ignore",
 				"intermediate",
 				"mw",
 				"prefixes",
@@ -1486,6 +1501,17 @@ func TestAutocomplete(t *testing.T) {
 		{
 			name: "nil completor has no autocomplete",
 			args: []string{"basically", ""},
+		},
+		// Ignores subcommand autocompletes
+		{
+			name:      "IgnoreSubcommandAutocomplete doesn't include subcommands in suggestions",
+			args:      []string{"ignore", ""},
+			fetchResp: []string{"argh", "aye"},
+			want:      []string{"argh", "aye"},
+			wantValue: &Value{valType: StringType},
+			wantCompleteArgs: map[string]*Value{
+				"aight": &Value{valType: StringType},
+			},
 		},
 		// Test lists
 		{

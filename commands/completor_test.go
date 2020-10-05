@@ -61,11 +61,12 @@ func TestCompletors(t *testing.T) {
 
 func TestFetchers(t *testing.T) {
 	for _, test := range []struct {
-		name   string
-		f      Fetcher
-		args   []string
-		absErr error
-		want   []string
+		name      string
+		f         Fetcher
+		args      []string
+		absErr    error
+		stringArg bool
+		want      []string
 	}{
 		{
 			name: "noop fetcher returns nil",
@@ -108,6 +109,25 @@ func TestFetchers(t *testing.T) {
 				"testing/",
 				"value_test.go",
 				"values.go",
+			},
+		},
+		{
+			name: "file fetcher works with string list arg",
+			f:    &FileFetcher{},
+			args: []string{"ar"},
+			want: []string{
+				"arg_options.go",
+				"arg_types.go",
+			},
+		},
+		{
+			name:      "file fetcher works with string arg",
+			f:         &FileFetcher{},
+			args:      []string{"ar"},
+			stringArg: true,
+			want: []string{
+				"arg_options.go",
+				"arg_types.go",
 			},
 		},
 		{
@@ -254,11 +274,12 @@ func TestFetchers(t *testing.T) {
 			completor := &Completor{
 				SuggestionFetcher: test.f,
 			}
-			cmd := &TerminusCommand{
-				Args: []Arg{
-					StringListArg("test", 2, 5, completor),
-				},
+
+			arg := StringListArg("test", 2, 5, completor)
+			if test.stringArg {
+				arg = StringArg("test", true, completor)
 			}
+			cmd := &TerminusCommand{Args: []Arg{arg}}
 			got := Autocomplete(cmd, test.args, 0)
 			if len(got) == 0 {
 				got = nil
