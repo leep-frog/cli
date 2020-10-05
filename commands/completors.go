@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"fmt"
 	"io/ioutil"
 	"path/filepath"
 	"regexp"
@@ -85,6 +86,13 @@ type FileFetcher struct {
 
 // TODO: should these be allowed to return errors?
 func (ff *FileFetcher) Fetch(value *Value, args, flags map[string]*Value) []string {
+	var lastArg string
+	if strPtr := value.String(); strPtr != nil {
+		lastArg = *strPtr
+	} else if slPtr := value.StringList(); slPtr != nil && len(*slPtr) > 0 {
+		lastArg = (*slPtr)[len(*slPtr)-1]
+	}
+
 	dir, err := filepathAbs(ff.Directory)
 	if err != nil {
 		return nil
@@ -95,6 +103,7 @@ func (ff *FileFetcher) Fetch(value *Value, args, flags map[string]*Value) []stri
 		return nil
 	}
 
+	onlyDir := true
 	suggestions := make([]string, 0, len(files))
 	for _, f := range files {
 		if (f.Mode().IsDir() && ff.IgnoreDirectories) || (f.Mode().IsRegular() && ff.IgnoreFiles) {
@@ -105,7 +114,20 @@ func (ff *FileFetcher) Fetch(value *Value, args, flags map[string]*Value) []stri
 			continue
 		}
 
-		suggestions = append(suggestions, f.Name())
+		if !strings.HasPrefix(f.Name(), lastArg) {
+			continue
+		}
+
+		if f.Mode().IsDir() {
+			suggestions = append(suggestions, fmt.Sprintf("%s/", f.Name()))
+		} else {
+			onlyDir = false
+			suggestions = append(suggestions, f.Name())
+		}
+	}
+
+	if len(suggestions) == 1 && onlyDir {
+		suggestions = append(suggestions, fmt.Sprintf("%s/", suggestions[0]))
 	}
 
 	return suggestions

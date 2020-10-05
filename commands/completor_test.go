@@ -105,7 +105,7 @@ func TestFetchers(t *testing.T) {
 				"completor_test.go",
 				"completors.go",
 				"flag_types.go",
-				"testing",
+				"testing/",
 				"value_test.go",
 				"values.go",
 			},
@@ -140,7 +140,18 @@ func TestFetchers(t *testing.T) {
 			},
 		},
 		{
-			name: "file fetcher ignores files",
+			name: "file fetcher requires prefix",
+			f: &FileFetcher{
+				Directory: "testing/dir3",
+			},
+			args: []string{"th"},
+			want: []string{
+				"that/",
+				"this.txt",
+			},
+		},
+		{
+			name: "file fetcher ignores directories",
 			f: &FileFetcher{
 				Directory:         "testing/dir2",
 				IgnoreDirectories: true,
@@ -152,16 +163,27 @@ func TestFetchers(t *testing.T) {
 			},
 		},
 		{
-			name: "file fetcher ignores directories",
+			name: "file fetcher ignores files",
 			f: &FileFetcher{
 				Directory:   "testing/dir2",
 				IgnoreFiles: true,
 			},
 			want: []string{
-				"childC",
-				"childD",
-				"subA",
-				"subB",
+				"childC/",
+				"childD/",
+				"subA/",
+				"subB/",
+			},
+		},
+		{
+			name: "file fetcher completes to directory",
+			f: &FileFetcher{
+				Directory: "testing",
+			},
+			args: []string{"dir1"},
+			want: []string{
+				"dir1/",
+				"dir1//",
 			},
 		},
 	} {
