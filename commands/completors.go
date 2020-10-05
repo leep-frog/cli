@@ -9,7 +9,7 @@ import (
 
 var (
 	// Getwd gets the current working directory (needed to stub out in tests).
-	Getwd = os.Getwd
+	getwd = os.Getwd
 )
 
 type Completor struct {
@@ -88,7 +88,7 @@ func (ff *FileFetcher) Fetch(value *Value, args, flags map[string]*Value) []stri
 	dir := ff.Directory
 	if dir == "" {
 		var err error
-		dir, err = Getwd()
+		dir, err = getwd()
 		if err != nil {
 			return nil
 		}

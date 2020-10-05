@@ -165,9 +165,9 @@ func TestFetchers(t *testing.T) {
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			oldWd := Getwd
-			Getwd = func() (string, error) { return test.getwdDir, test.getwdErr }
-			defer func() { Getwd = oldWd }()
+			oldWd := getwd
+			getwd = func() (string, error) { return test.getwdDir, test.getwdErr }
+			defer func() { getwd = oldWd }()
 
 			got := test.f.Fetch(test.value, test.args, test.flags)
 			if diff := cmp.Diff(test.want, got); diff != "" {
