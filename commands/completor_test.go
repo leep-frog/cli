@@ -10,12 +10,10 @@ import (
 
 func TestCompletors(t *testing.T) {
 	for _, test := range []struct {
-		name  string
-		c     *Completor
-		value *Value
-		args  map[string]*Value
-		flags map[string]*Value
-		want  []string
+		name string
+		c    *Completor
+		args []string
+		want []string
 	}{
 		{
 			name: "nil completor returns nil",
@@ -31,25 +29,30 @@ func TestCompletors(t *testing.T) {
 					Options: []string{"first", "second", "third"},
 				},
 			},
-			value: &Value{stringList: []string{"first", "second"}},
-			want:  []string{"first", "second", "third"},
+			args: []string{"first", "second", ""},
+			want: []string{"first", "second", "third"},
 		},
 		{
-			name: "distinct completor returns duplicates",
+			name: "distinct completor does not return duplicates",
 			c: &Completor{
 				Distinct: true,
 				SuggestionFetcher: &ListFetcher{
 					Options: []string{"first", "second", "third"},
 				},
 			},
-			value: &Value{stringList: []string{"first", "second"}},
-			want:  []string{"third"},
+			args: []string{"first", "second", ""},
+			want: []string{"third"},
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			got := test.c.Complete(test.value, test.args, test.flags)
+			cmd := &TerminusCommand{
+				Args: []Arg{
+					StringListArg("test", 2, 5, test.c),
+				},
+			}
+			got := Autocomplete(cmd, test.args, 0)
 			if diff := cmp.Diff(test.want, got); diff != "" {
-				t.Errorf("completor.Complete(%v, %v, %v) returned diff (-want, +got):\n%s", test.value, test.args, test.flags, diff)
+				t.Errorf("Autocomplete(%v, %v) returned diff (-want, +got):\n%s", cmd, test.args, diff)
 			}
 		})
 	}

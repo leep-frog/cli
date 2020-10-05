@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"os"
 	"regexp"
+	"strings"
 )
 
 var (
@@ -28,10 +29,26 @@ func (c *Completor) Complete(value *Value, args, flags map[string]*Value) []stri
 	}
 
 	allOpts := c.SuggestionFetcher.Fetch(value, args, flags)
+
+	// Filter out prefixes (this should be optional based on Completor.FilterPrefix (or option?))
+	var lastArg string
+	if strPtr := value.String(); strPtr != nil {
+		lastArg = *strPtr
+	} else if slPtr := value.StringList(); slPtr != nil && len(*slPtr) > 0 {
+		lastArg = (*slPtr)[len(*slPtr)-1]
+	}
+
+	var filteredOpts []string
+	for _, o := range allOpts {
+		if strings.HasPrefix(o, lastArg) {
+			filteredOpts = append(filteredOpts, o)
+		}
+	}
+
 	if !c.Distinct || value.valType != StringListType {
 		// TODO: if we ever want to autocomplete non-string types, we should make Fetch
 		// return Value types (and add public methods to construct int, string, float values).
-		return allOpts
+		return filteredOpts
 	}
 
 	existingValues := map[string]bool{}
@@ -39,8 +56,8 @@ func (c *Completor) Complete(value *Value, args, flags map[string]*Value) []stri
 		existingValues[s] = true
 	}
 
-	distinctOpts := make([]string, 0, len(allOpts))
-	for _, opt := range allOpts {
+	var distinctOpts []string
+	for _, opt := range filteredOpts {
 		if !existingValues[opt] {
 			distinctOpts = append(distinctOpts, opt)
 		}

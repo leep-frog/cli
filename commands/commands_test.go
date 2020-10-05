@@ -1439,7 +1439,6 @@ func TestAutocomplete(t *testing.T) {
 		{
 			name: "no complete when unknown arg",
 			args: []string{"unknown"},
-			want: []string{},
 		},
 		{
 			name:      "empty second arg gets autocompleted",
@@ -1468,7 +1467,6 @@ func TestAutocomplete(t *testing.T) {
 		{
 			name: "no autocomplete when run out of defined args",
 			args: []string{"basic", "one", "two", ""},
-			want: []string{},
 		},
 		{
 			name:      "works with more than two argument groups",
@@ -1488,7 +1486,6 @@ func TestAutocomplete(t *testing.T) {
 		{
 			name: "nil completor has no autocomplete",
 			args: []string{"basically", ""},
-			want: []string{},
 		},
 		// Test lists
 		{
@@ -1573,7 +1570,6 @@ func TestAutocomplete(t *testing.T) {
 			args:      []string{"sometimes", "tmp", "occ", "temporary", "temp", "extra"},
 			distinct:  true,
 			fetchResp: []string{"occ", "occasional", "temp", "temporary", "tmp"},
-			want:      []string{},
 		},
 		// Multi-word and quote tests
 		{
@@ -2199,7 +2195,6 @@ func TestAutocomplete(t *testing.T) {
 		{
 			name: "autocompletes handles invalid branch command",
 			args: []string{"not", "a", "key"},
-			want: []string{},
 		},
 		// Commands with different value type.
 		// string argument type
@@ -2480,6 +2475,9 @@ func TestAutocomplete(t *testing.T) {
 			}
 
 			got := Autocomplete(branchCommand(NoopExecutor, completor), test.args, test.cursorIdx)
+			if len(got) == 0 {
+				got = nil
+			}
 			if diff := cmp.Diff(test.want, got); diff != "" {
 				t.Errorf("command.Autocomplete(%v, %d) returned diff (-want, +got):\n%s", test.args, test.cursorIdx, diff)
 			}

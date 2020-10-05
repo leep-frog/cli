@@ -162,7 +162,7 @@ func (cb *CommandBranch) Complete(args []string) []string {
 			suggestions = append(suggestions, cb.TerminusCommand.Complete(args)...)
 		}
 
-		return suggestions
+		return filter(args, suggestions)
 	}
 
 	// If first argument is a subcommand, then return it's suggestions
@@ -187,6 +187,21 @@ func Execute(c Command, unparsedArgs []string) (*ExecutorResponse, error) {
 	return c.Execute(args)
 }
 
+func filter(args, suggestions []string) []string {
+	if len(args) == 0 {
+		return suggestions
+	}
+
+	lastArg := args[len(args)-1]
+	var filtered []string
+	for _, arg := range suggestions {
+		if strings.HasPrefix(arg, lastArg) {
+			filtered = append(filtered, arg)
+		}
+	}
+	return filtered
+}
+
 // Autocomplete completes the given unparsed command.
 func Autocomplete(c Command, unparsedArgs []string, cursorIdx int) []string {
 	args, delimiter := parseArgs(unparsedArgs)
@@ -197,22 +212,13 @@ func Autocomplete(c Command, unparsedArgs []string, cursorIdx int) []string {
 
 	predictions := c.Complete(args)
 
-	lastArg := args[len(args)-1]
-
-	predictionsWithPrefix := make([]string, 0, len(predictions))
-	for _, prediction := range predictions {
-		if strings.HasPrefix(prediction, lastArg) {
-			predictionsWithPrefix = append(predictionsWithPrefix, prediction)
-		}
-	}
-	sort.Strings(predictionsWithPrefix)
-
-	for i, prediction := range predictionsWithPrefix {
+	sort.Strings(predictions)
+	for i, prediction := range predictions {
 		if strings.Contains(prediction, " ") {
-			predictionsWithPrefix[i] = fmt.Sprintf("%s%s%s", delimiter, prediction, delimiter)
+			predictions[i] = fmt.Sprintf("%s%s%s", delimiter, prediction, delimiter)
 		}
 	}
-	return predictionsWithPrefix
+	return predictions
 }
 
 // Usage returns usage info about the command.
@@ -332,7 +338,7 @@ func (tc *TerminusCommand) Complete(args []string) []string {
 			for k := range flagMap {
 				allFlags = append(allFlags, k)
 			}
-			return allFlags
+			return filter(args, allFlags)
 		}
 
 		value, fullyProcessed, _ := flag.ProcessArgs(args[(idx + 1):])
@@ -362,7 +368,7 @@ func (tc *TerminusCommand) Complete(args []string) []string {
 			for _, flag := range tc.Flags {
 				fullFlags = append(fullFlags, fmt.Sprintf("--%s", flag.Name()))
 			}
-			return fullFlags
+			return filter(args, fullFlags)
 		}
 
 		// Otherwise, just return all flags if the last arg is a prefix of any of them.
@@ -373,7 +379,7 @@ func (tc *TerminusCommand) Complete(args []string) []string {
 			allFlags = append(allFlags, k)
 		}
 		if matches {
-			return allFlags
+			return filter(args, allFlags)
 		}
 	}
 
