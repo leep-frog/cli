@@ -2,14 +2,14 @@ package commands
 
 import (
 	"io/ioutil"
-	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 )
 
 var (
-	// Getwd gets the current working directory (needed to stub out in tests).
-	getwd = os.Getwd
+	// Used for testing.
+	filepathAbs = filepath.Abs
 )
 
 type Completor struct {
@@ -85,13 +85,9 @@ type FileFetcher struct {
 
 // TODO: should these be allowed to return errors?
 func (ff *FileFetcher) Fetch(value *Value, args, flags map[string]*Value) []string {
-	dir := ff.Directory
-	if dir == "" {
-		var err error
-		dir, err = getwd()
-		if err != nil {
-			return nil
-		}
+	dir, err := filepathAbs(ff.Directory)
+	if err != nil {
+		return nil
 	}
 
 	files, err := ioutil.ReadDir(dir)

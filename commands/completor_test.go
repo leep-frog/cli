@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"path/filepath"
 	"regexp"
 	"testing"
 
@@ -60,12 +61,11 @@ func TestCompletors(t *testing.T) {
 
 func TestFetchers(t *testing.T) {
 	for _, test := range []struct {
-		name     string
-		f        Fetcher
-		args     []string
-		getwdDir string
-		getwdErr error
-		want     []string
+		name   string
+		f      Fetcher
+		args   []string
+		absErr error
+		want   []string
 	}{
 		{
 			name: "noop fetcher returns nil",
@@ -90,27 +90,31 @@ func TestFetchers(t *testing.T) {
 		},
 		// FileFetcher tests
 		{
-			name:     "file fetcher returns nil if failure fetching current directory",
-			f:        &FileFetcher{},
-			getwdErr: fmt.Errorf("failed to fetch directory"),
+			name:   "file fetcher returns nil if failure fetching current directory",
+			f:      &FileFetcher{},
+			absErr: fmt.Errorf("failed to fetch directory"),
 		},
 		{
-			name:     "file fetcher returns files in the current working directory",
-			f:        &FileFetcher{},
-			getwdDir: "testing",
+			name: "file fetcher returns files in the current working directory",
+			f:    &FileFetcher{},
 			want: []string{
-				"dir1",
-				"dir2",
-				"four.txt",
-				"one.txt",
-				"three.txt",
-				"two.txt",
+				"arg_options.go",
+				"arg_types.go",
+				"commands.go",
+				"commands_test.go",
+				"completor_test.go",
+				"completors.go",
+				"flag_types.go",
+				"testing",
+				"value_test.go",
+				"values.go",
 			},
 		},
 		{
-			name:     "file fetcher returns nil if failure listing directory",
-			f:        &FileFetcher{},
-			getwdDir: "does-not-exist",
+			name: "file fetcher returns nil if failure listing directory",
+			f: &FileFetcher{
+				Directory: "does/not/exist",
+			},
 		},
 		{
 			name: "file fetcher returns files in the specified directory",
@@ -162,9 +166,14 @@ func TestFetchers(t *testing.T) {
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			oldWd := getwd
-			getwd = func() (string, error) { return test.getwdDir, test.getwdErr }
-			defer func() { getwd = oldWd }()
+			oldAbs := filepathAbs
+			filepathAbs = func(rel string) (string, error) {
+				if test.absErr != nil {
+					return "", test.absErr
+				}
+				return filepath.Abs(rel)
+			}
+			defer func() { filepathAbs = oldAbs }()
 
 			completor := &Completor{
 				SuggestionFetcher: test.f,
