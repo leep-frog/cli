@@ -62,9 +62,7 @@ func TestFetchers(t *testing.T) {
 	for _, test := range []struct {
 		name     string
 		f        Fetcher
-		value    *Value
-		args     map[string]*Value
-		flags    map[string]*Value
+		args     []string
 		getwdDir string
 		getwdErr error
 		want     []string
@@ -82,7 +80,6 @@ func TestFetchers(t *testing.T) {
 			f: &ListFetcher{
 				Options: []string{},
 			},
-			want: []string{},
 		},
 		{
 			name: "list fetcher returns list",
@@ -169,9 +166,20 @@ func TestFetchers(t *testing.T) {
 			getwd = func() (string, error) { return test.getwdDir, test.getwdErr }
 			defer func() { getwd = oldWd }()
 
-			got := test.f.Fetch(test.value, test.args, test.flags)
+			completor := &Completor{
+				SuggestionFetcher: test.f,
+			}
+			cmd := &TerminusCommand{
+				Args: []Arg{
+					StringListArg("test", 2, 5, completor),
+				},
+			}
+			got := Autocomplete(cmd, test.args, 0)
+			if len(got) == 0 {
+				got = nil
+			}
 			if diff := cmp.Diff(test.want, got); diff != "" {
-				t.Errorf("fetcher.Fetch(%v, %v, %v) returned diff (-want, +got):\n%s", test.value, test.args, test.flags, diff)
+				t.Errorf("Autocomplete(%v, %v) returned diff (-want, +got):\n%s", cmd, test.args, diff)
 			}
 		})
 	}
