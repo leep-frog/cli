@@ -21,6 +21,7 @@ type Completor struct {
 type Fetcher interface {
 	// Fetch fetches all other options given the command arguments and flags.
 	Fetch(value *Value, args, flags map[string]*Value) []string
+	PrefixFilter() bool
 }
 
 // TODO: values arg should be a *Value
@@ -40,10 +41,14 @@ func (c *Completor) Complete(value *Value, args, flags map[string]*Value) []stri
 	}
 
 	var filteredOpts []string
-	for _, o := range allOpts {
-		if strings.HasPrefix(o, lastArg) {
-			filteredOpts = append(filteredOpts, o)
+	if c.SuggestionFetcher.PrefixFilter() {
+		for _, o := range allOpts {
+			if strings.HasPrefix(o, lastArg) {
+				filteredOpts = append(filteredOpts, o)
+			}
 		}
+	} else {
+		filteredOpts = allOpts
 	}
 
 	if !c.Distinct || value.valType != StringListType {
@@ -69,12 +74,14 @@ func (c *Completor) Complete(value *Value, args, flags map[string]*Value) []stri
 type NoopFetcher struct{}
 
 func (nf *NoopFetcher) Fetch(_ *Value, _, _ map[string]*Value) []string { return nil }
+func (nf *NoopFetcher) PrefixFilter() bool                              { return true }
 
 type ListFetcher struct {
 	Options []string
 }
 
 func (lf *ListFetcher) Fetch(_ *Value, _, _ map[string]*Value) []string { return lf.Options }
+func (lf *ListFetcher) PrefixFilter() bool                              { return true }
 
 // TODO: this needs to complete the second half of the command as well
 type FileFetcher struct {
@@ -83,6 +90,8 @@ type FileFetcher struct {
 	IgnoreFiles       bool
 	IgnoreDirectories bool
 }
+
+func (ff *FileFetcher) PrefixFilter() bool { return true }
 
 // TODO: should these be allowed to return errors?
 func (ff *FileFetcher) Fetch(value *Value, args, flags map[string]*Value) []string {
