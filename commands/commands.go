@@ -226,6 +226,7 @@ func Autocomplete(c Command, unparsedArgs []string, cursorIdx int) []string {
 	for i, prediction := range predictions {
 		if strings.Contains(prediction, " ") {
 			if delimiter == nil {
+				// TODO: default delimiter behavior should be defined by command?
 				predictions[i] = strings.ReplaceAll(prediction, " ", "\\ ")
 			} else {
 				predictions[i] = fmt.Sprintf("%s%s%s", *delimiter, prediction, *delimiter)
