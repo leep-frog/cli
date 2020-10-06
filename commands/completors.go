@@ -21,6 +21,7 @@ type Completor struct {
 type Completion struct {
 	Suggestions  []string
 	IgnoreFilter bool
+	DontComplete bool
 }
 
 type Fetcher interface {
@@ -178,8 +179,7 @@ func (ff *FileFetcher) Fetch(value *Value, args, flags map[string]*Value) *Compl
 			} else if rune(s[nextLetterPos]) != *nextLetter {
 				// If two options differ in next letter, then
 				// no extra letters can be filled.
-				// TODO: find a way to not complete this
-				// c.Suggestions = append(c.Suggestions, " ")
+				c.DontComplete = true
 				return c
 			}
 		}

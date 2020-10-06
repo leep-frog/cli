@@ -254,6 +254,11 @@ func Autocomplete(c Command, unparsedArgs []string, cursorIdx int) []string {
 			}
 		}
 	}
+
+	if completion.DontComplete {
+		predictions = append(predictions, " ")
+	}
+
 	return predictions
 }
 
