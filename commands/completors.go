@@ -51,7 +51,11 @@ func (c *Completor) Complete(value *Value, args, flags map[string]*Value) []stri
 		filteredOpts = allOpts
 	}
 
+	fmt.Println("Z01_AO", allOpts)
+	fmt.Println("Z02_FO", filteredOpts)
+
 	if !c.Distinct || value.valType != StringListType {
+		fmt.Println("Z03")
 		// TODO: if we ever want to autocomplete non-string types, we should make Fetch
 		// return Value types (and add public methods to construct int, string, float values).
 		return filteredOpts
@@ -68,6 +72,7 @@ func (c *Completor) Complete(value *Value, args, flags map[string]*Value) []stri
 			distinctOpts = append(distinctOpts, opt)
 		}
 	}
+	fmt.Println("Z04_DO", distinctOpts)
 	return distinctOpts
 }
 
