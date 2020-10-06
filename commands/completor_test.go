@@ -105,7 +105,6 @@ func TestFetchers(t *testing.T) {
 			name: "file fetcher returns files in the current working directory",
 			f:    &FileFetcher{},
 			want: []string{
-				".surprise",
 				"arg_options.go",
 				"arg_types.go",
 				"commands.go",
@@ -142,6 +141,25 @@ func TestFetchers(t *testing.T) {
 			name: "file fetcher returns nil if failure listing directory",
 			f: &FileFetcher{
 				Directory: "does/not/exist",
+			},
+		},
+		{
+			name: "file fetcher returns files in the specified directory",
+			f: &FileFetcher{
+				Directory: "testing",
+			},
+			want: []string{
+				".surprise",
+				"dir1/",
+				"dir2/",
+				"dir3/",
+				"dir4/",
+				"empty/",
+				"four.txt",
+				"one.txt",
+				"three.txt",
+				"two.txt",
+				" ",
 			},
 		},
 		{
