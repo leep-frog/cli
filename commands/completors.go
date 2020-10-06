@@ -108,11 +108,13 @@ func (ff *FileFetcher) Fetch(value *Value, args, flags map[string]*Value) []stri
 	fmt.Println("ARGLAST_", lastArg, "|")
 	dir, err := filepathAbs(filepath.Join(ff.Directory, laDir))
 	if err != nil {
+		fmt.Println("sadness 1", err)
 		return nil
 	}
 
 	files, err := ioutil.ReadDir(dir)
 	if err != nil {
+		fmt.Println("sadness 2", err)
 		return nil
 	}
 
@@ -141,9 +143,10 @@ func (ff *FileFetcher) Fetch(value *Value, args, flags map[string]*Value) []stri
 		}
 	}
 
-	fmt.Println(suggestions)
+	fmt.Println("MIDPOINT", suggestions)
 
 	if len(suggestions) == 0 {
+		fmt.Println("returning 3", suggestions)
 		return suggestions
 	}
 
@@ -158,6 +161,7 @@ func (ff *FileFetcher) Fetch(value *Value, args, flags map[string]*Value) []stri
 			// without a space after it.
 			suggestions = append(suggestions, fmt.Sprintf("%s/", suggestions[0]))
 		}
+		fmt.Println("returning 4", suggestions)
 		return suggestions
 	}
 
@@ -173,6 +177,7 @@ func (ff *FileFetcher) Fetch(value *Value, args, flags map[string]*Value) []stri
 			} else if rune(s[nextLetterPos]) != *nextLetter {
 				// If two options differ in next letter, then
 				// no extra letters can be filled.
+				fmt.Println("Returning", suggestions)
 				return suggestions
 			}
 		}
@@ -182,6 +187,7 @@ func (ff *FileFetcher) Fetch(value *Value, args, flags map[string]*Value) []stri
 	for i, s := range suggestions {
 		suggestions[i] = fmt.Sprintf("%s%s", laDir, s)
 	}
+	fmt.Println("Returning 2", suggestions)
 	return suggestions
 }
 
