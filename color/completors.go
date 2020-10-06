@@ -7,8 +7,10 @@ import (
 type fetcher struct{}
 
 // TODO: add existing stuff in here so don't display already present format.
-func (f *fetcher) Fetch(value *commands.Value, args, flags map[string]*commands.Value) []string {
-	return Attributes()
+func (f *fetcher) Fetch(value *commands.Value, args, flags map[string]*commands.Value) *commands.Completion {
+	return &commands.Completion{
+		Suggestions: Attributes(),
+	}
 }
 
 func (f *fetcher) PrefixFilter() bool { return true }
