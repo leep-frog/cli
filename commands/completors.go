@@ -116,6 +116,8 @@ func (ff *FileFetcher) Fetch(value *Value, args, flags map[string]*Value) []stri
 		return nil
 	}
 
+	fmt.Println("Files", files)
+
 	onlyDir := true
 	suggestions := make([]string, 0, len(files))
 	for _, f := range files {
@@ -138,6 +140,8 @@ func (ff *FileFetcher) Fetch(value *Value, args, flags map[string]*Value) []stri
 			suggestions = append(suggestions, f.Name())
 		}
 	}
+
+	fmt.Println(suggestions)
 
 	if len(suggestions) == 0 {
 		return suggestions
