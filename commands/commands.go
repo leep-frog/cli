@@ -217,12 +217,11 @@ func Autocomplete(c Command, unparsedArgs []string, cursorIdx int) []string {
 	predictions := c.Complete(args)
 
 	sort.Strings(predictions)
-	_ = delimiter
-	/*for i, prediction := range predictions {
+	for i, prediction := range predictions {
 		if strings.Contains(prediction, " ") {
 			predictions[i] = fmt.Sprintf("%s%s%s", delimiter, prediction, delimiter)
 		}
-	}*/
+	}
 	return predictions
 }
 
