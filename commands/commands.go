@@ -29,7 +29,7 @@ func parseArgs(unparsedArgs []string) ([]string, *string) {
 	inSingle, inDouble := false, false
 	// Note: "one"two is equivalent to (onetwo) as opposed to (one two).
 	for i, arg := range unparsedArgs {
-		fmt.Printf("ARG__%s\n", arg)
+		fmt.Printf("%dARG__%s\n", i, arg)
 		for j := 0; j < len(arg); j++ {
 			char := rune(arg[j])
 
