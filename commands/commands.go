@@ -51,6 +51,7 @@ func parseArgs(unparsedArgs []string) ([]string, *string) {
 				inDouble = true
 			} else if char == '\\' && j < len(arg)-1 && rune(arg[j+1]) == ' ' {
 				currentString = append(currentString, ' ')
+				j++
 			} else {
 				currentString = append(currentString, char)
 			}

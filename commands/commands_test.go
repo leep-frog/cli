@@ -1610,10 +1610,10 @@ func TestAutocomplete(t *testing.T) {
 			},
 			want: []string{
 				"Fifth",
-				`\"First Choice\"`,
-				`\"Fourth Option\"`,
-				`\"Second Thing\"`,
-				`\"Third One\"`,
+				`First\ Choice`,
+				`Fourth\ Option`,
+				`Second\ Thing`,
+				`Third\ One`,
 			},
 			wantValue: &Value{stringList: []string{""}},
 			wantCompleteArgs: map[string]*Value{
@@ -1633,7 +1633,7 @@ func TestAutocomplete(t *testing.T) {
 				"Fifth",
 			},
 			want: []string{
-				`\"Fourth Option\"`,
+				`Fourth\ Option`,
 			},
 			wantValue: &Value{stringList: []string{"Fo"}},
 			wantCompleteArgs: map[string]*Value{
@@ -1654,8 +1654,8 @@ func TestAutocomplete(t *testing.T) {
 			},
 			want: []string{
 				"Fifth",
-				`\"First Choice\"`,
-				`\"Fourth Option\"`,
+				`First\ Choice`,
+				`Fourth\ Option`,
 			},
 			wantValue: &Value{stringList: []string{"F"}},
 			wantCompleteArgs: map[string]*Value{
@@ -1673,11 +1673,12 @@ func TestAutocomplete(t *testing.T) {
 				"Greg's Three",
 				"Greg's Four",
 			},
+			// TODO if string has a quote, then we should escape that as well?
 			want: []string{
-				`\"Greg's Four\"`,
-				`\"Greg's One\"`,
-				`\"Greg's Three\"`,
-				`\"Greg's Two\"`,
+				`Greg's\ Four`,
+				`Greg's\ One`,
+				`Greg's\ Three`,
+				`Greg's\ Two`,
 			},
 			wantValue: &Value{stringList: []string{"Greg's One", ""}},
 			wantCompleteArgs: map[string]*Value{
@@ -1696,10 +1697,10 @@ func TestAutocomplete(t *testing.T) {
 				`Greg"s Four`,
 			},
 			want: []string{
-				`\"Greg"s Four\"`,
-				`\"Greg"s One\"`,
-				`\"Greg"s Three\"`,
-				`\"Greg"s Two\"`,
+				`Greg"s\ Four`,
+				`Greg"s\ One`,
+				`Greg"s\ Three`,
+				`Greg"s\ Two`,
 			},
 			wantValue: &Value{stringList: []string{`Greg"s Other"s`, ""}},
 			wantCompleteArgs: map[string]*Value{
@@ -1720,10 +1721,10 @@ func TestAutocomplete(t *testing.T) {
 			},
 			want: []string{
 				"Fifth",
-				`\"First Choice\"`,
-				`\"Fourth Option\"`,
-				`\"Second Thing\"`,
-				`\"Third One\"`,
+				`"First Choice"`,
+				`"Fourth Option"`,
+				`"Second Thing"`,
+				`"Third One"`,
 			},
 			wantValue: &Value{stringList: []string{""}},
 			wantCompleteArgs: map[string]*Value{
@@ -1790,10 +1791,10 @@ func TestAutocomplete(t *testing.T) {
 			},
 			want: []string{
 				"Fifth",
-				`\"First Choice\"`,
-				`\"Fourth Option\"`,
-				`\"Second Thing\"`,
-				`\"Third One\"`,
+				`"First Choice"`,
+				`"Fourth Option"`,
+				`"Second Thing"`,
+				`"Third One"`,
 			},
 			wantValue: &Value{stringList: []string{""}},
 			wantCompleteArgs: map[string]*Value{
@@ -1814,8 +1815,8 @@ func TestAutocomplete(t *testing.T) {
 			},
 			want: []string{
 				"Fifth",
-				`\"First Choice\"`,
-				`\"Fourth Option\"`,
+				`"First Choice"`,
+				`"Fourth Option"`,
 			},
 			wantValue: &Value{stringList: []string{"F"}},
 			wantCompleteArgs: map[string]*Value{
@@ -1834,8 +1835,8 @@ func TestAutocomplete(t *testing.T) {
 				"Greg's Four",
 			},
 			want: []string{
-				`\"Greg's Three\"`,
-				`\"Greg's Two\"`,
+				`"Greg's Three"`,
+				`"Greg's Two"`,
 			},
 			wantValue: &Value{stringList: []string{"Greg's T"}},
 			wantCompleteArgs: map[string]*Value{
@@ -1923,7 +1924,7 @@ func TestAutocomplete(t *testing.T) {
 				"ThreeFour",
 			},
 			want: []string{
-				`\"Attempt One Two\"`,
+				`Attempt\ One\ Two`,
 			},
 			wantValue: &Value{stringList: []string{"Attempt One "}},
 			wantCompleteArgs: map[string]*Value{
@@ -1944,13 +1945,33 @@ func TestAutocomplete(t *testing.T) {
 			},
 			want: []string{
 				"Three",
-				`\"Three Four\"`,
+				`Three\ Four`,
 				"ThreeFour",
 			},
 			wantValue: &Value{stringList: []string{"Three"}},
 			wantCompleteArgs: map[string]*Value{
 				"alphas": &Value{
 					stringList: []string{"Three"},
+				},
+			},
+		},
+		{
+			name: "handles backspaces before spaces",
+			args: []string{"mw", "First\\ O"},
+			fetchResp: []string{
+				"First Of",
+				"First One",
+				"Second Thing",
+				"Third One",
+			},
+			want: []string{
+				`First\ Of`,
+				`First\ One`,
+			},
+			wantValue: &Value{stringList: []string{"First O"}},
+			wantCompleteArgs: map[string]*Value{
+				"alpha": &Value{
+					stringList: []string{"First O"},
 				},
 			},
 		},
