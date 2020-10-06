@@ -59,7 +59,7 @@ func parseArgs(unparsedArgs []string) ([]string, string) {
 		}
 	}
 
-	delimiter := "\\\""
+	delimiter := "\""
 	if inSingle || delimiterOverride == "'" {
 		delimiter = "'"
 	}
