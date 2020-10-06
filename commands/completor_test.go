@@ -257,7 +257,7 @@ func TestFetchers(t *testing.T) {
 			},
 		},
 		{
-			name: "file fetcher shows full nnames when multiple options with same next letter",
+			name: "file fetcher shows full names when multiple options with same next letter",
 			f:    &FileFetcher{},
 			args: []string{"testing/d"},
 			want: []string{
@@ -278,8 +278,6 @@ func TestFetchers(t *testing.T) {
 				"fourth.py",
 			},
 		},
-		// TODO: complete forward when multiple options (dir3/aaa and dir3/abc and arg is "dir3/a")
-		// currently returns aaa, abc but should return with prefix too
 		{
 			name: "file fetcher handles directories with spaces",
 			f:    &FileFetcher{},
@@ -335,6 +333,17 @@ func TestFetchers(t *testing.T) {
 				"dir2/",
 				"dir3/",
 				"dir4/",
+			},
+		},
+		{
+			name:          "file fetcher handles multiple options in directory",
+			f:             &FileFetcher{},
+			commandBranch: true,
+			args:          []string{"testing/dir1/f"},
+			want: []string{
+				"",
+				"first.txt",
+				"fourth.py",
 			},
 		},
 		/* Useful for commenting out tests */

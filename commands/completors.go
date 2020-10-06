@@ -166,7 +166,7 @@ func (ff *FileFetcher) Fetch(value *Value, args, flags map[string]*Value) []stri
 			} else if rune(s[nextLetterPos]) != *nextLetter {
 				// If two options differ in next letter, then
 				// no extra letters can be filled.
-				return suggestions
+				return append(suggestions, "")
 			}
 		}
 	}
