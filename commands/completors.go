@@ -51,11 +51,7 @@ func (c *Completor) Complete(value *Value, args, flags map[string]*Value) []stri
 		filteredOpts = allOpts
 	}
 
-	fmt.Println("Z01_AO", allOpts)
-	fmt.Println("Z02_FO", filteredOpts)
-
 	if !c.Distinct || value.valType != StringListType {
-		fmt.Println("Z03")
 		// TODO: if we ever want to autocomplete non-string types, we should make Fetch
 		// return Value types (and add public methods to construct int, string, float values).
 		return filteredOpts
@@ -72,7 +68,6 @@ func (c *Completor) Complete(value *Value, args, flags map[string]*Value) []stri
 			distinctOpts = append(distinctOpts, opt)
 		}
 	}
-	fmt.Println("Z04_DO", distinctOpts)
 	return distinctOpts
 }
 
@@ -108,22 +103,15 @@ func (ff *FileFetcher) Fetch(value *Value, args, flags map[string]*Value) []stri
 	}
 
 	laDir, laFile := filepath.Split(lastArg)
-	fmt.Println("DIR_", laDir, "|")
-	fmt.Println("LAFILE_", laFile, "|")
-	fmt.Println("ARGLAST_", lastArg, "|")
 	dir, err := filepathAbs(filepath.Join(ff.Directory, laDir))
 	if err != nil {
-		fmt.Println("sadness 1", err)
 		return nil
 	}
 
 	files, err := ioutil.ReadDir(dir)
 	if err != nil {
-		fmt.Println("sadness 2", err)
 		return nil
 	}
-
-	fmt.Println("Files", files)
 
 	onlyDir := true
 	suggestions := make([]string, 0, len(files))
@@ -148,10 +136,7 @@ func (ff *FileFetcher) Fetch(value *Value, args, flags map[string]*Value) []stri
 		}
 	}
 
-	fmt.Println("MIDPOINT", suggestions)
-
 	if len(suggestions) == 0 {
-		fmt.Println("returning 3", suggestions)
 		return suggestions
 	}
 
@@ -166,7 +151,6 @@ func (ff *FileFetcher) Fetch(value *Value, args, flags map[string]*Value) []stri
 			// without a space after it.
 			suggestions = append(suggestions, fmt.Sprintf("%s/", suggestions[0]))
 		}
-		fmt.Println("returning 4", suggestions)
 		return suggestions
 	}
 
@@ -182,7 +166,6 @@ func (ff *FileFetcher) Fetch(value *Value, args, flags map[string]*Value) []stri
 			} else if rune(s[nextLetterPos]) != *nextLetter {
 				// If two options differ in next letter, then
 				// no extra letters can be filled.
-				fmt.Println("Returning", suggestions)
 				return suggestions
 			}
 		}
@@ -192,7 +175,6 @@ func (ff *FileFetcher) Fetch(value *Value, args, flags map[string]*Value) []stri
 	for i, s := range suggestions {
 		suggestions[i] = fmt.Sprintf("%s%s", laDir, s)
 	}
-	fmt.Println("Returning 2", suggestions)
 	return suggestions
 }
 

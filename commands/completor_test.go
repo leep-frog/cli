@@ -61,12 +61,13 @@ func TestCompletors(t *testing.T) {
 
 func TestFetchers(t *testing.T) {
 	for _, test := range []struct {
-		name      string
-		f         Fetcher
-		args      []string
-		absErr    error
-		stringArg bool
-		want      []string
+		name          string
+		f             Fetcher
+		args          []string
+		absErr        error
+		stringArg     bool
+		commandBranch bool
+		want          []string
 	}{
 		{
 			name: "noop fetcher returns nil",
@@ -324,6 +325,18 @@ func TestFetchers(t *testing.T) {
 				"testing/dir4/folder_without_spaces/",
 			},
 		},
+		{
+			name:          "file fetcher doesn't get filtered out when part of a CommandBranch",
+			f:             &FileFetcher{},
+			commandBranch: true,
+			args:          []string{"testing/dir"},
+			want: []string{
+				"dir1/",
+				"dir2/",
+				"dir3/",
+				"dir4/",
+			},
+		},
 		/* Useful for commenting out tests */
 	} {
 		t.Run(test.name, func(t *testing.T) {
@@ -344,7 +357,15 @@ func TestFetchers(t *testing.T) {
 			if test.stringArg {
 				arg = StringArg("test", true, completor)
 			}
-			cmd := &TerminusCommand{Args: []Arg{arg}}
+			var cmd Command
+			tc := &TerminusCommand{Args: []Arg{arg}}
+			if test.commandBranch {
+				cmd = &CommandBranch{
+					TerminusCommand: tc,
+				}
+			} else {
+				cmd = tc
+			}
 			got := Autocomplete(cmd, test.args, 0)
 			if len(got) == 0 {
 				got = nil
