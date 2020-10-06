@@ -19,13 +19,13 @@ type Completor struct {
 }
 
 type Completion struct {
-	Suggestions []string
+	Suggestions  []string
+	IgnoreFilter bool
 }
 
 type Fetcher interface {
 	// Fetch fetches all other options given the command arguments and flags.
 	Fetch(value *Value, args, flags map[string]*Value) *Completion
-	PrefixFilter() bool
 }
 
 // TODO: values arg should be a *Value
@@ -49,7 +49,7 @@ func (c *Completor) Complete(value *Value, args, flags map[string]*Value) *Compl
 	}
 
 	// TODO: move prefix filter to a field in Completion.IgnorePrefix
-	if c.SuggestionFetcher.PrefixFilter() {
+	if !completion.IgnoreFilter {
 		var filteredOpts []string
 		for _, o := range allOpts {
 			if strings.HasPrefix(o, lastArg) {
@@ -83,7 +83,6 @@ func (c *Completor) Complete(value *Value, args, flags map[string]*Value) *Compl
 type NoopFetcher struct{}
 
 func (nf *NoopFetcher) Fetch(_ *Value, _, _ map[string]*Value) *Completion { return nil }
-func (nf *NoopFetcher) PrefixFilter() bool                                 { return true }
 
 type ListFetcher struct {
 	Options []string
@@ -92,7 +91,6 @@ type ListFetcher struct {
 func (lf *ListFetcher) Fetch(_ *Value, _, _ map[string]*Value) *Completion {
 	return &Completion{Suggestions: lf.Options}
 }
-func (lf *ListFetcher) PrefixFilter() bool { return true }
 
 // TODO: this needs to complete the second half of the command as well
 type FileFetcher struct {
@@ -101,8 +99,6 @@ type FileFetcher struct {
 	IgnoreFiles       bool
 	IgnoreDirectories bool
 }
-
-func (ff *FileFetcher) PrefixFilter() bool { return false }
 
 // TODO: should these be allowed to return errors?
 func (ff *FileFetcher) Fetch(value *Value, args, flags map[string]*Value) *Completion {
@@ -147,12 +143,13 @@ func (ff *FileFetcher) Fetch(value *Value, args, flags map[string]*Value) *Compl
 		}
 	}
 
-	c := &Completion{
-		Suggestions: suggestions,
+	if len(suggestions) == 0 {
+		return nil
 	}
 
-	if len(c.Suggestions) == 0 {
-		return c
+	c := &Completion{
+		Suggestions:  suggestions,
+		IgnoreFilter: true,
 	}
 
 	// If only 1 suggestion matching, then we want it to autocomplete the whole thing.

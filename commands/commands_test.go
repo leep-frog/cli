@@ -2553,8 +2553,6 @@ type testFetcher struct {
 	resp     []string
 }
 
-func (tf *testFetcher) PrefixFilter() bool { return true }
-
 func (tf *testFetcher) Fetch(value *Value, args, flags map[string]*Value) *Completion {
 	// Check length so we can consider empty to be the same as nil.
 	// That makes for cleaner test cases.
