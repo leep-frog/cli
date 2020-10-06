@@ -105,6 +105,7 @@ func TestFetchers(t *testing.T) {
 			name: "file fetcher returns files in the current working directory",
 			f:    &FileFetcher{},
 			want: []string{
+				".surprise",
 				"arg_options.go",
 				"arg_types.go",
 				"commands.go",
@@ -115,6 +116,7 @@ func TestFetchers(t *testing.T) {
 				"testing/",
 				"value_test.go",
 				"values.go",
+				" ",
 			},
 		},
 		{
@@ -152,6 +154,7 @@ func TestFetchers(t *testing.T) {
 				"fourth.py",
 				"second.py",
 				"third.go",
+				" ",
 			},
 		},
 		{
@@ -163,6 +166,7 @@ func TestFetchers(t *testing.T) {
 			want: []string{
 				"fourth.py",
 				"second.py",
+				" ",
 			},
 		},
 		{
@@ -174,6 +178,7 @@ func TestFetchers(t *testing.T) {
 			want: []string{
 				"that/",
 				"this.txt",
+				" ",
 			},
 		},
 		{
@@ -199,6 +204,7 @@ func TestFetchers(t *testing.T) {
 				"childD/",
 				"subA/",
 				"subB/",
+				" ",
 			},
 		},
 		{
@@ -230,6 +236,7 @@ func TestFetchers(t *testing.T) {
 				"fourth.py",
 				"second.py",
 				"third.go",
+				" ",
 			},
 		},
 		{
@@ -243,6 +250,7 @@ func TestFetchers(t *testing.T) {
 				"fourth.py",
 				"second.py",
 				"third.go",
+				" ",
 			},
 		},
 		{
@@ -254,6 +262,7 @@ func TestFetchers(t *testing.T) {
 				"dir2/",
 				"dir3/",
 				"dir4/",
+				" ",
 			},
 		},
 		{
@@ -276,6 +285,7 @@ func TestFetchers(t *testing.T) {
 			want: []string{
 				"first.txt",
 				"fourth.py",
+				" ",
 			},
 		},
 		{
@@ -303,6 +313,7 @@ func TestFetchers(t *testing.T) {
 			want: []string{
 				"goodbye.go",
 				"hello.txt",
+				" ",
 			},
 		},
 		{
@@ -312,6 +323,7 @@ func TestFetchers(t *testing.T) {
 			want: []string{
 				"goodbye.go",
 				"hello.txt",
+				" ",
 			},
 		},
 		{
@@ -333,6 +345,7 @@ func TestFetchers(t *testing.T) {
 				"dir2/",
 				"dir3/",
 				"dir4/",
+				" ",
 			},
 		},
 		{
@@ -343,6 +356,7 @@ func TestFetchers(t *testing.T) {
 			want: []string{
 				"first.txt",
 				"fourth.py",
+				" ",
 			},
 		},
 		/* Useful for commenting out tests */
