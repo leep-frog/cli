@@ -28,8 +28,8 @@ func parseArgs(unparsedArgs []string) ([]string, *string) {
 	// TODO: this should be an enum (iota)
 	inSingle, inDouble := false, false
 	// Note: "one"two is equivalent to (onetwo) as opposed to (one two).
-	// TODO: test this
 	for i, arg := range unparsedArgs {
+		fmt.Printf("ARG__%s\n", arg)
 		for j := 0; j < len(arg); j++ {
 			char := rune(arg[j])
 

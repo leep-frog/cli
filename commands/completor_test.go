@@ -247,6 +247,7 @@ func TestFetchers(t *testing.T) {
 				"dir1/",
 				"dir2/",
 				"dir3/",
+				"dir4/",
 			},
 		},
 		{
@@ -258,6 +259,26 @@ func TestFetchers(t *testing.T) {
 			want: []string{
 				"first.txt",
 				"fourth.py",
+			},
+		},
+		{
+			name: "file fetcher handles directories with spaces",
+			f:    &FileFetcher{},
+			args: []string{`testing/dir4/folder\ `},
+			want: []string{
+				`testing/dir4/folder\ with\ spaces/`,
+				`testing/dir4/folder\ with\ spaces//`,
+			},
+		},
+		// TODO: complete forward when multiple options (dir3/aaa and dir3/abc and arg is "dir3/a")
+		// currently returns aaa, abc but should return with prefix too
+		{
+			name: "file fetcher can dive into folder with spaces",
+			f:    &FileFetcher{},
+			args: []string{`testing/dir4/folder\ with\ spaces/`},
+			want: []string{
+				"goodbye.go",
+				"hello.txt",
 			},
 		},
 	} {
