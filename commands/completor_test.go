@@ -341,9 +341,9 @@ func TestFetchers(t *testing.T) {
 			commandBranch: true,
 			args:          []string{"testing/dir1/f"},
 			want: []string{
-				"",
 				"first.txt",
 				"fourth.py",
+				" ",
 			},
 		},
 		/* Useful for commenting out tests */
