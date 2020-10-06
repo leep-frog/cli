@@ -103,8 +103,9 @@ func (ff *FileFetcher) Fetch(value *Value, args, flags map[string]*Value) []stri
 	}
 
 	laDir, laFile := filepath.Split(lastArg)
-	fmt.Println("LADIR", laDir)
-	fmt.Println("LAFILE", laFile)
+	fmt.Println("DIR_", laDir, "|")
+	fmt.Println("LAFILE_", laFile, "|")
+	fmt.Println("ARGLAST_", lastArg, "|")
 	dir, err := filepathAbs(filepath.Join(ff.Directory, laDir))
 	if err != nil {
 		return nil
