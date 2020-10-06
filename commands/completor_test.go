@@ -96,6 +96,11 @@ func TestFetchers(t *testing.T) {
 			absErr: fmt.Errorf("failed to fetch directory"),
 		},
 		{
+			name: "file fetcher handles empty directory",
+			f:    &FileFetcher{},
+			args: []string{"testing/empty/"},
+		},
+		{
 			name: "file fetcher returns files in the current working directory",
 			f:    &FileFetcher{},
 			want: []string{
@@ -240,14 +245,25 @@ func TestFetchers(t *testing.T) {
 			},
 		},
 		{
-			name: "file fetcher only shows basenames when multiple options",
+			name: "file fetcher only shows basenames when multiple options with different next letter",
 			f:    &FileFetcher{},
-			args: []string{"testing/di"},
+			args: []string{"testing/dir"},
 			want: []string{
 				"dir1/",
 				"dir2/",
 				"dir3/",
 				"dir4/",
+			},
+		},
+		{
+			name: "file fetcher shows full nnames when multiple options with same next letter",
+			f:    &FileFetcher{},
+			args: []string{"testing/d"},
+			want: []string{
+				"testing/dir1/",
+				"testing/dir2/",
+				"testing/dir3/",
+				"testing/dir4/",
 			},
 		},
 		{
@@ -297,6 +313,15 @@ func TestFetchers(t *testing.T) {
 			want: []string{
 				"goodbye.go",
 				"hello.txt",
+			},
+		},
+		{
+			name: "autocomplete fills in letters that are the same for all options",
+			f:    &FileFetcher{},
+			args: []string{`testing/dir4/fo`},
+			want: []string{
+				`testing/dir4/folder\ with\ spaces/`,
+				"testing/dir4/folder_without_spaces/",
 			},
 		},
 		/* Useful for commenting out tests */

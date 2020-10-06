@@ -102,18 +102,14 @@ func (ff *FileFetcher) Fetch(value *Value, args, flags map[string]*Value) []stri
 		lastArg = (*slPtr)[len(*slPtr)-1]
 	}
 
-	fmt.Printf("LA_%s_%s\n", lastArg, ff.Directory)
-
 	laDir, laFile := filepath.Split(lastArg)
 	dir, err := filepathAbs(filepath.Join(ff.Directory, laDir))
 	if err != nil {
-		fmt.Println("sadness 1:", err)
 		return nil
 	}
 
 	files, err := ioutil.ReadDir(dir)
 	if err != nil {
-		fmt.Println("sadness 2:", err)
 		return nil
 	}
 
@@ -140,7 +136,9 @@ func (ff *FileFetcher) Fetch(value *Value, args, flags map[string]*Value) []stri
 		}
 	}
 
-	fmt.Println("alpha", suggestions)
+	if len(suggestions) == 0 {
+		return suggestions
+	}
 
 	// If only 1 suggestion matching, then we want it to autocomplete the whole thing.
 	if len(suggestions) == 1 {
@@ -153,9 +151,30 @@ func (ff *FileFetcher) Fetch(value *Value, args, flags map[string]*Value) []stri
 			// without a space after it.
 			suggestions = append(suggestions, fmt.Sprintf("%s/", suggestions[0]))
 		}
+		return suggestions
 	}
 
-	fmt.Println("bravo", suggestions)
+	// We check if all suggestions match laFile, because then we can
+	// autofill letters that are the same for all options.
+	var nextLetter *rune
+	nextLetterPos := len(laFile)
+	for _, s := range suggestions {
+		if len(s) > nextLetterPos {
+			if nextLetter == nil {
+				rn := rune(s[nextLetterPos])
+				nextLetter = &rn
+			} else if rune(s[nextLetterPos]) != *nextLetter {
+				// If two options differ in next letter, then
+				// no extra letters can be filled.
+				return suggestions
+			}
+		}
+	}
+
+	// If we are here, then we can autofill some letters
+	for i, s := range suggestions {
+		suggestions[i] = fmt.Sprintf("%s%s", laDir, s)
+	}
 	return suggestions
 }
 

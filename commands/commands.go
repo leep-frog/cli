@@ -78,9 +78,6 @@ func parseArgs(unparsedArgs []string) ([]string, *string) {
 		delimiter = &sq
 	}
 
-	/*for i, a := range parsedArgs {
-		fmt.Printf("%d_ARG_%s\n", i, a)
-	}*/
 	return parsedArgs, delimiter
 }
 
