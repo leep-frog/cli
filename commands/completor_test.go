@@ -261,19 +261,37 @@ func TestFetchers(t *testing.T) {
 				"fourth.py",
 			},
 		},
+		// TODO: complete forward when multiple options (dir3/aaa and dir3/abc and arg is "dir3/a")
+		// currently returns aaa, abc but should return with prefix too
 		{
 			name: "file fetcher handles directories with spaces",
 			f:    &FileFetcher{},
-			args: []string{`testing/dir4/folder\ `},
+			args: []string{`testing/dir4/folder\`, `wit`},
 			want: []string{
 				`testing/dir4/folder\ with\ spaces/`,
 				`testing/dir4/folder\ with\ spaces//`,
 			},
 		},
-		// TODO: complete forward when multiple options (dir3/aaa and dir3/abc and arg is "dir3/a")
-		// currently returns aaa, abc but should return with prefix too
+		{
+			name: "file fetcher handles directories with spaces when same argument",
+			f:    &FileFetcher{},
+			args: []string{`testing/dir4/folder\ wit`},
+			want: []string{
+				`testing/dir4/folder\ with\ spaces/`,
+				`testing/dir4/folder\ with\ spaces//`,
+			},
+		},
 		{
 			name: "file fetcher can dive into folder with spaces",
+			f:    &FileFetcher{},
+			args: []string{`testing/dir4/folder\`, `with\`, `spaces/`},
+			want: []string{
+				"goodbye.go",
+				"hello.txt",
+			},
+		},
+		{
+			name: "file fetcher can dive into folder with spaces when combined args",
 			f:    &FileFetcher{},
 			args: []string{`testing/dir4/folder\ with\ spaces/`},
 			want: []string{
@@ -281,6 +299,7 @@ func TestFetchers(t *testing.T) {
 				"hello.txt",
 			},
 		},
+		/* Useful for commenting out tests */
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			oldAbs := filepathAbs

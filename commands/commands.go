@@ -29,7 +29,6 @@ func parseArgs(unparsedArgs []string) ([]string, *string) {
 	inSingle, inDouble := false, false
 	// Note: "one"two is equivalent to (onetwo) as opposed to (one two).
 	for i, arg := range unparsedArgs {
-		fmt.Printf("%dARG__%s\n", i, arg)
 		for j := 0; j < len(arg); j++ {
 			char := rune(arg[j])
 
@@ -59,6 +58,9 @@ func parseArgs(unparsedArgs []string) ([]string, *string) {
 
 		if (inSingle || inDouble) && i != len(unparsedArgs)-1 {
 			currentString = append(currentString, ' ')
+		} else if len(arg) > 0 && rune(arg[len(arg)-1]) == '\\' {
+			// If last character of argument is a backslash, then it's just a space
+			currentString[len(currentString)-1] = ' '
 		} else {
 			parsedArgs = append(parsedArgs, string(currentString))
 			currentString = currentString[0:0]
