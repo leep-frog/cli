@@ -159,7 +159,7 @@ func (ga *genericArgs) Optional() bool {
 	return ga.argProcessor.MinN == 0
 }
 
-func (ga *genericArgs) Complete(args, flags map[string]*Value) []string {
+func (ga *genericArgs) Complete(args, flags map[string]*Value) *Completion {
 	if ga.completor == nil {
 		return nil
 	}

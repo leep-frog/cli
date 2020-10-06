@@ -18,19 +18,27 @@ type Completor struct {
 	SuggestionFetcher Fetcher
 }
 
+type Completion struct {
+	Suggestions []string
+}
+
 type Fetcher interface {
 	// Fetch fetches all other options given the command arguments and flags.
-	Fetch(value *Value, args, flags map[string]*Value) []string
+	Fetch(value *Value, args, flags map[string]*Value) *Completion
 	PrefixFilter() bool
 }
 
 // TODO: values arg should be a *Value
-func (c *Completor) Complete(value *Value, args, flags map[string]*Value) []string {
+func (c *Completor) Complete(value *Value, args, flags map[string]*Value) *Completion {
 	if c == nil || c.SuggestionFetcher == nil {
 		return nil
 	}
 
-	allOpts := c.SuggestionFetcher.Fetch(value, args, flags)
+	completion := c.SuggestionFetcher.Fetch(value, args, flags)
+	if completion == nil {
+		return nil
+	}
+	allOpts := completion.Suggestions
 
 	// Filter out prefixes (this should be optional based on Completor.FilterPrefix (or option?))
 	var lastArg string
@@ -40,21 +48,21 @@ func (c *Completor) Complete(value *Value, args, flags map[string]*Value) []stri
 		lastArg = (*slPtr)[len(*slPtr)-1]
 	}
 
-	var filteredOpts []string
+	// TODO: move prefix filter to a field in Completion.IgnorePrefix
 	if c.SuggestionFetcher.PrefixFilter() {
+		var filteredOpts []string
 		for _, o := range allOpts {
 			if strings.HasPrefix(o, lastArg) {
 				filteredOpts = append(filteredOpts, o)
 			}
 		}
-	} else {
-		filteredOpts = allOpts
+		completion.Suggestions = filteredOpts
 	}
 
 	if !c.Distinct || value.valType != StringListType {
 		// TODO: if we ever want to autocomplete non-string types, we should make Fetch
 		// return Value types (and add public methods to construct int, string, float values).
-		return filteredOpts
+		return completion
 	}
 
 	existingValues := map[string]bool{}
@@ -63,25 +71,28 @@ func (c *Completor) Complete(value *Value, args, flags map[string]*Value) []stri
 	}
 
 	var distinctOpts []string
-	for _, opt := range filteredOpts {
+	for _, opt := range completion.Suggestions {
 		if !existingValues[opt] {
 			distinctOpts = append(distinctOpts, opt)
 		}
 	}
-	return distinctOpts
+	completion.Suggestions = distinctOpts
+	return completion
 }
 
 type NoopFetcher struct{}
 
-func (nf *NoopFetcher) Fetch(_ *Value, _, _ map[string]*Value) []string { return nil }
-func (nf *NoopFetcher) PrefixFilter() bool                              { return true }
+func (nf *NoopFetcher) Fetch(_ *Value, _, _ map[string]*Value) *Completion { return nil }
+func (nf *NoopFetcher) PrefixFilter() bool                                 { return true }
 
 type ListFetcher struct {
 	Options []string
 }
 
-func (lf *ListFetcher) Fetch(_ *Value, _, _ map[string]*Value) []string { return lf.Options }
-func (lf *ListFetcher) PrefixFilter() bool                              { return true }
+func (lf *ListFetcher) Fetch(_ *Value, _, _ map[string]*Value) *Completion {
+	return &Completion{Suggestions: lf.Options}
+}
+func (lf *ListFetcher) PrefixFilter() bool { return true }
 
 // TODO: this needs to complete the second half of the command as well
 type FileFetcher struct {
@@ -94,7 +105,7 @@ type FileFetcher struct {
 func (ff *FileFetcher) PrefixFilter() bool { return false }
 
 // TODO: should these be allowed to return errors?
-func (ff *FileFetcher) Fetch(value *Value, args, flags map[string]*Value) []string {
+func (ff *FileFetcher) Fetch(value *Value, args, flags map[string]*Value) *Completion {
 	var lastArg string
 	if strPtr := value.String(); strPtr != nil {
 		lastArg = *strPtr
@@ -136,29 +147,33 @@ func (ff *FileFetcher) Fetch(value *Value, args, flags map[string]*Value) []stri
 		}
 	}
 
-	if len(suggestions) == 0 {
-		return suggestions
+	c := &Completion{
+		Suggestions: suggestions,
+	}
+
+	if len(c.Suggestions) == 0 {
+		return c
 	}
 
 	// If only 1 suggestion matching, then we want it to autocomplete the whole thing.
-	if len(suggestions) == 1 {
+	if len(c.Suggestions) == 1 {
 		// Want to autocomplete the full path
 		// Note: we can't use filepath.Join here because it cleans up the path
-		suggestions[0] = fmt.Sprintf("%s%s", laDir, suggestions[0])
+		c.Suggestions[0] = fmt.Sprintf("%s%s", laDir, c.Suggestions[0])
 
 		if onlyDir {
 			// This does dir1/ and dir1// so that the user's command is autocompleted to dir1/
 			// without a space after it.
-			suggestions = append(suggestions, fmt.Sprintf("%s/", suggestions[0]))
+			c.Suggestions = append(c.Suggestions, fmt.Sprintf("%s/", c.Suggestions[0]))
 		}
-		return suggestions
+		return c
 	}
 
 	// We check if all suggestions match laFile, because then we can
 	// autofill letters that are the same for all options.
 	var nextLetter *rune
 	nextLetterPos := len(laFile)
-	for _, s := range suggestions {
+	for _, s := range c.Suggestions {
 		if len(s) > nextLetterPos {
 			if nextLetter == nil {
 				rn := rune(s[nextLetterPos])
@@ -166,16 +181,18 @@ func (ff *FileFetcher) Fetch(value *Value, args, flags map[string]*Value) []stri
 			} else if rune(s[nextLetterPos]) != *nextLetter {
 				// If two options differ in next letter, then
 				// no extra letters can be filled.
-				return append(suggestions, " ")
+				// TODO: find a way to not complete this
+				// c.Suggestions = append(c.Suggestions, " ")
+				return c
 			}
 		}
 	}
 
 	// If we are here, then we can autofill some letters
-	for i, s := range suggestions {
-		suggestions[i] = fmt.Sprintf("%s%s", laDir, s)
+	for i, s := range c.Suggestions {
+		c.Suggestions[i] = fmt.Sprintf("%s%s", laDir, s)
 	}
-	return suggestions
+	return c
 }
 
 // TODO type MultiFetcher struct { cs Fetchers }

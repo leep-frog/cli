@@ -83,7 +83,7 @@ func parseArgs(unparsedArgs []string) ([]string, *string) {
 
 // Command is an interface for a CLI that can be written in go.
 type Command interface {
-	Complete([]string) []string
+	Complete([]string) *Completion
 	Execute([]string) (*ExecutorResponse, error)
 	Usage() []string
 }
@@ -165,7 +165,7 @@ func (cb *CommandBranch) Execute(args []string) (*ExecutorResponse, error) {
 }
 
 // Complete returns autocomplete suggestions.
-func (cb *CommandBranch) Complete(args []string) []string {
+func (cb *CommandBranch) Complete(args []string) *Completion {
 	// Return subcommands and terminus command suggestions if only one argument.
 	if len(args) <= 1 {
 		suggestions := make([]string, 0, len(cb.Subcommands))
@@ -179,10 +179,17 @@ func (cb *CommandBranch) Complete(args []string) []string {
 
 		if cb.TerminusCommand != nil {
 			// the autocomplete command will filter if needed
-			suggestions = append(suggestions, cb.TerminusCommand.Complete(args)...)
+			c := cb.TerminusCommand.Complete(args)
+			if c == nil {
+				c = &Completion{}
+			}
+			c.Suggestions = append(c.Suggestions, suggestions...)
+			return c
 		}
 
-		return suggestions
+		return &Completion{
+			Suggestions: suggestions,
+		}
 	}
 
 	// If first argument is a subcommand, then return it's suggestions
@@ -230,7 +237,11 @@ func Autocomplete(c Command, unparsedArgs []string, cursorIdx int) []string {
 		args = append(args, "")
 	}
 
-	predictions := c.Complete(args)
+	completion := c.Complete(args)
+	if completion == nil {
+		completion = &Completion{}
+	}
+	predictions := completion.Suggestions
 
 	sort.Strings(predictions)
 	for i, prediction := range predictions {
@@ -340,7 +351,7 @@ func (tc *TerminusCommand) Execute(args []string) (*ExecutorResponse, error) {
 }
 
 // Complete returns all possible autocomplete suggestions for the given list of arguments.
-func (tc *TerminusCommand) Complete(args []string) []string {
+func (tc *TerminusCommand) Complete(args []string) *Completion {
 	// TODO: combine common logic between this and Execute
 	flagMap := tc.flagMap(args)
 
@@ -363,7 +374,9 @@ func (tc *TerminusCommand) Complete(args []string) []string {
 			for k := range flagMap {
 				allFlags = append(allFlags, k)
 			}
-			return filter(args, allFlags)
+			return &Completion{
+				Suggestions: filter(args, allFlags),
+			}
 		}
 
 		value, fullyProcessed, _ := flag.ProcessArgs(args[(idx + 1):])
@@ -393,7 +406,9 @@ func (tc *TerminusCommand) Complete(args []string) []string {
 			for _, flag := range tc.Flags {
 				fullFlags = append(fullFlags, fmt.Sprintf("--%s", flag.Name()))
 			}
-			return filter(args, fullFlags)
+			return &Completion{
+				Suggestions: filter(args, fullFlags),
+			}
 		}
 
 		// Otherwise, just return all flags if the last arg is a prefix of any of them.
@@ -404,7 +419,9 @@ func (tc *TerminusCommand) Complete(args []string) []string {
 			allFlags = append(allFlags, k)
 		}
 		if matches {
-			return filter(args, allFlags)
+			return &Completion{
+				Suggestions: filter(args, allFlags),
+			}
 		}
 	}
 
@@ -447,7 +464,7 @@ positional:
 type Arg interface {
 	Name() string
 	ProcessArgs(args []string) (*Value, bool, error)
-	Complete(args, flags map[string]*Value) []string
+	Complete(args, flags map[string]*Value) *Completion
 	Usage() []string
 	Optional() bool
 }
@@ -457,6 +474,6 @@ type Flag interface {
 	Name() string
 	ShortName() rune
 	ProcessArgs(args []string) (*Value, bool, error)
-	Complete(args, flags map[string]*Value) []string
+	Complete(args, flags map[string]*Value) *Completion
 	Usage() []string
 }

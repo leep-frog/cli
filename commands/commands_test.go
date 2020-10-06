@@ -1376,7 +1376,7 @@ func TestCommandComplete(t *testing.T) {
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			suggestions := test.cmd.Complete(test.args)
+			suggestions := test.cmd.Complete(test.args).Suggestions
 			sort.Strings(suggestions)
 			if diff := cmp.Diff(test.want, suggestions); diff != "" {
 				t.Errorf("Complete(%v) produced diff (-want, +got):\n%s", test.args, diff)
@@ -2555,7 +2555,7 @@ type testFetcher struct {
 
 func (tf *testFetcher) PrefixFilter() bool { return true }
 
-func (tf *testFetcher) Fetch(value *Value, args, flags map[string]*Value) []string {
+func (tf *testFetcher) Fetch(value *Value, args, flags map[string]*Value) *Completion {
 	// Check length so we can consider empty to be the same as nil.
 	// That makes for cleaner test cases.
 	if value != nil && value.Length() > 0 {
@@ -2568,7 +2568,9 @@ func (tf *testFetcher) Fetch(value *Value, args, flags map[string]*Value) []stri
 		tf.gotFlags = flags
 	}
 
-	return tf.resp
+	return &Completion{
+		Suggestions: tf.resp,
+	}
 }
 
 // Test to get 100% coverage

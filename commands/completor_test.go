@@ -343,7 +343,6 @@ func TestFetchers(t *testing.T) {
 			want: []string{
 				"first.txt",
 				"fourth.py",
-				" ",
 			},
 		},
 		/* Useful for commenting out tests */
