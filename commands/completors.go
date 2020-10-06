@@ -107,11 +107,13 @@ func (ff *FileFetcher) Fetch(value *Value, args, flags map[string]*Value) []stri
 	laDir, laFile := filepath.Split(lastArg)
 	dir, err := filepathAbs(filepath.Join(ff.Directory, laDir))
 	if err != nil {
+		fmt.Println("sadness 1:", err)
 		return nil
 	}
 
 	files, err := ioutil.ReadDir(dir)
 	if err != nil {
+		fmt.Println("sadness 2:", err)
 		return nil
 	}
 
@@ -138,6 +140,8 @@ func (ff *FileFetcher) Fetch(value *Value, args, flags map[string]*Value) []stri
 		}
 	}
 
+	fmt.Println("alpha", suggestions)
+
 	// If only 1 suggestion matching, then we want it to autocomplete the whole thing.
 	if len(suggestions) == 1 {
 		// Want to autocomplete the full path
@@ -150,6 +154,8 @@ func (ff *FileFetcher) Fetch(value *Value, args, flags map[string]*Value) []stri
 			suggestions = append(suggestions, fmt.Sprintf("%s/", suggestions[0]))
 		}
 	}
+
+	fmt.Println("bravo", suggestions)
 	return suggestions
 }
 
