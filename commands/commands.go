@@ -25,27 +25,32 @@ func parseArgs(unparsedArgs []string) ([]string, *string) {
 	}
 	currentString := make([]rune, 0, totalLen)
 
+	// TODO: this should be an enum (iota)
 	inSingle, inDouble := false, false
 	// Note: "one"two is equivalent to (onetwo) as opposed to (one two).
 	// TODO: test this
 	for i, arg := range unparsedArgs {
-		for _, char := range arg {
-			if char == '\'' {
-				if inSingle {
+		for j := 0; j < len(arg); j++ {
+			char := rune(arg[j])
+
+			if inSingle {
+				if char == '\'' {
 					inSingle = false
-				} else if !inDouble {
-					inSingle = true
 				} else {
 					currentString = append(currentString, char)
 				}
-			} else if char == '"' {
-				if inDouble {
+			} else if inDouble {
+				if char == '"' {
 					inDouble = false
-				} else if !inSingle {
-					inDouble = true
 				} else {
 					currentString = append(currentString, char)
 				}
+			} else if char == '\'' {
+				inSingle = true
+			} else if char == '"' {
+				inDouble = true
+			} else if char == '\\' && j < len(arg)-1 && rune(arg[j+1]) == ' ' {
+				currentString = append(currentString, ' ')
 			} else {
 				currentString = append(currentString, char)
 			}
