@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-func parseArgs(unparsedArgs []string) ([]string, string) {
+func parseArgs(unparsedArgs []string) ([]string, *string) {
 	// Ignore if the last charater is just a quote
 	var delimiterOverride string
 	if len(unparsedArgs) > 0 && (unparsedArgs[len(unparsedArgs)-1] == "\"" || unparsedArgs[len(unparsedArgs)-1] == "'") {
@@ -59,9 +59,15 @@ func parseArgs(unparsedArgs []string) ([]string, string) {
 		}
 	}
 
-	delimiter := "\""
-	if inSingle || delimiterOverride == "'" {
-		delimiter = "'"
+	var delimiter *string
+	if delimiterOverride != "" {
+		delimiter = &delimiterOverride
+	} else if inDouble {
+		dq := `"`
+		delimiter = &dq
+	} else if inSingle {
+		sq := "'"
+		delimiter = &sq
 	}
 
 	return parsedArgs, delimiter
@@ -219,7 +225,11 @@ func Autocomplete(c Command, unparsedArgs []string, cursorIdx int) []string {
 	sort.Strings(predictions)
 	for i, prediction := range predictions {
 		if strings.Contains(prediction, " ") {
-			predictions[i] = fmt.Sprintf("%s%s%s", delimiter, prediction, delimiter)
+			if delimiter == nil {
+				predictions[i] = strings.ReplaceAll(prediction, " ", "\\ ")
+			} else {
+				predictions[i] = fmt.Sprintf("%s%s%s", *delimiter, prediction, *delimiter)
+			}
 		}
 	}
 	return predictions
