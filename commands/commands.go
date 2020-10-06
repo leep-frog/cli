@@ -174,13 +174,15 @@ func (cb *CommandBranch) Complete(args []string) []string {
 			for k := range cb.Subcommands {
 				suggestions = append(suggestions, k)
 			}
+			suggestions = filter(args, suggestions)
 		}
 
 		if cb.TerminusCommand != nil {
+			// the autocomplete command will filter if needed
 			suggestions = append(suggestions, cb.TerminusCommand.Complete(args)...)
 		}
 
-		return filter(args, suggestions)
+		return suggestions
 	}
 
 	// If first argument is a subcommand, then return it's suggestions
