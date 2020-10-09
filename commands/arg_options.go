@@ -140,42 +140,42 @@ func FloatOption(f func(float64) bool, err error) ArgOpt {
 func FloatEQ(f float64) ArgOpt {
 	return FloatOption(
 		func(vf float64) bool { return vf == f },
-		fmt.Errorf("[FloatEQ] value isn't equal to %f", f),
+		fmt.Errorf("[FloatEQ] value isn't equal to %0.2f", f),
 	)
 }
 
 func FloatNE(f float64) ArgOpt {
 	return FloatOption(
 		func(vf float64) bool { return vf != f },
-		fmt.Errorf("[FloatNE] value isn't not equal to %f", f),
+		fmt.Errorf("[FloatNE] value isn't not equal to %0.2f", f),
 	)
 }
 
 func FloatLT(f float64) ArgOpt {
 	return FloatOption(
 		func(vf float64) bool { return vf < f },
-		fmt.Errorf("[FloatLT] value isn't less than %f", f),
+		fmt.Errorf("[FloatLT] value isn't less than %0.2f", f),
 	)
 }
 
 func FloatLTE(f float64) ArgOpt {
 	return FloatOption(
 		func(vf float64) bool { return vf <= f },
-		fmt.Errorf("[FloatLTE] value isn't less than or equal to %f", f),
+		fmt.Errorf("[FloatLTE] value isn't less than or equal to %0.2f", f),
 	)
 }
 
 func FloatGT(f float64) ArgOpt {
 	return FloatOption(
 		func(vf float64) bool { return vf > f },
-		fmt.Errorf("[FloatGT] value isn't greater than %f", f),
+		fmt.Errorf("[FloatGT] value isn't greater than %0.2f", f),
 	)
 }
 
 func FloatGTE(f float64) ArgOpt {
 	return FloatOption(
 		func(vf float64) bool { return vf >= f },
-		fmt.Errorf("[FloatGTE] value isn't greater than or equal to %f", f),
+		fmt.Errorf("[FloatGTE] value isn't greater than or equal to %0.2f", f),
 	)
 }
 

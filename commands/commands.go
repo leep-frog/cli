@@ -3,6 +3,8 @@ package commands
 
 import (
 	"fmt"
+	"log"
+	"os"
 	"sort"
 	"strings"
 )
@@ -84,26 +86,78 @@ func parseArgs(unparsedArgs []string) ([]string, *string) {
 // Command is an interface for a CLI that can be written in go.
 type Command interface {
 	Complete([]string) *Completion
-	Execute([]string) (*ExecutorResponse, error)
+	Execute(CommandOS, []string) (*ExecutorResponse, bool)
 	Usage() []string
+}
+
+// CommandOS provides OS-related objects to executors
+type CommandOS interface {
+	// Writes a line to stdout
+	Stdout(string, ...interface{})
+	// Writes a line to stderr
+	Stderr(string, ...interface{})
+}
+
+type commandOS struct {
+	stdout *log.Logger
+	stderr *log.Logger
+}
+
+func (cos *commandOS) Stdout(s string, a ...interface{}) {
+	cos.stdout.Println(fmt.Sprintf(s, a...))
+}
+
+func (cos *commandOS) Stderr(s string, a ...interface{}) {
+	cos.stderr.Println(fmt.Sprintf(s, a...))
+}
+
+// NewCommandOS returns an OS that points to stdout and stderr.
+func NewCommandOS() CommandOS {
+	return &commandOS{
+		stdout: log.New(os.Stdout, "", 0),
+		stderr: log.New(os.Stderr, "", 0),
+	}
+}
+
+type TestCommandOS struct {
+	stdout []string
+	stderr []string
+}
+
+func (tcos *TestCommandOS) Stdout(s string, a ...interface{}) {
+	if tcos.stdout == nil {
+		tcos.stdout = []string{}
+	}
+	tcos.stdout = append(tcos.stdout, fmt.Sprintf(s, a...))
+}
+
+func (tcos *TestCommandOS) Stderr(s string, a ...interface{}) {
+	if tcos.stderr == nil {
+		tcos.stderr = []string{}
+	}
+	tcos.stderr = append(tcos.stderr, fmt.Sprintf(s, a...))
+}
+
+func (tcos *TestCommandOS) GetStdout() []string {
+	return tcos.stdout
+}
+
+func (tcos *TestCommandOS) GetStderr() []string {
+	return tcos.stderr
 }
 
 // ExecutorResponse is the response returned by a command.
 type ExecutorResponse struct {
-	// Stdout is the output that should be sent to stdout.
-	Stdout []string
-	// Stderr is the output that should be sent to stderr.
-	Stderr []string
 	// Executable is another command that should be run.
 	Executable []string
 }
 
 // Executor executes a commands with the given positional arguments and flags.
-type Executor func(args map[string]*Value, flags map[string]*Value) (*ExecutorResponse, error)
+type Executor func(cos CommandOS, args map[string]*Value, flags map[string]*Value) (*ExecutorResponse, bool)
 
 // NoopExecutor is an Executor that does nothing.
-func NoopExecutor(_ map[string]*Value, _ map[string]*Value) (*ExecutorResponse, error) {
-	return nil, nil
+func NoopExecutor(_ CommandOS, _ map[string]*Value, _ map[string]*Value) (*ExecutorResponse, bool) {
+	return nil, true
 }
 
 // TODO: combine terminusCommand and commandBranch??
@@ -146,22 +200,24 @@ func (cb *CommandBranch) Usage() []string {
 }
 
 // Execute executes the corresponding subcommand.
-func (cb *CommandBranch) Execute(args []string) (*ExecutorResponse, error) {
+func (cb *CommandBranch) Execute(cos CommandOS, args []string) (*ExecutorResponse, bool) {
 	if len(args) == 0 {
 		if cb.TerminusCommand == nil {
-			return nil, fmt.Errorf("more args required: USAGE TODO")
+			cos.Stderr("more args required")
+			return nil, false
 		}
-		return cb.TerminusCommand.Execute(args)
+		return cb.TerminusCommand.Execute(cos, args)
 	}
 
 	if sc, ok := cb.Subcommands[args[0]]; ok {
-		return sc.Execute(args[1:])
+		return sc.Execute(cos, args[1:])
 	}
 
 	if cb.TerminusCommand == nil {
-		return nil, fmt.Errorf("unknown subcommand and no terminus command defined: USAGE TODO")
+		cos.Stderr("unknown subcommand and no terminus command defined")
+		return nil, false
 	}
-	return cb.TerminusCommand.Execute(args)
+	return cb.TerminusCommand.Execute(cos, args)
 }
 
 // Complete returns autocomplete suggestions.
@@ -207,11 +263,10 @@ func (cb *CommandBranch) Complete(args []string) *Completion {
 
 // Execute executes the given unparsed command.
 // TODO: this should only return an executor response
-func Execute(c Command, unparsedArgs []string) (*ExecutorResponse, error) {
+func Execute(cos CommandOS, c Command, unparsedArgs []string) (*ExecutorResponse, bool) {
 	// TODO: check for help flag and print usage.
 	args, _ := parseArgs(unparsedArgs)
-
-	return c.Execute(args)
+	return c.Execute(cos, args)
 }
 
 func filter(args, suggestions []string) []string {
@@ -286,7 +341,7 @@ func (tc *TerminusCommand) flagMap(args []string) map[string]Flag {
 }
 
 // Execute loads flags and args and then runs it's executor.
-func (tc *TerminusCommand) Execute(args []string) (*ExecutorResponse, error) {
+func (tc *TerminusCommand) Execute(cos CommandOS, args []string) (*ExecutorResponse, bool) {
 	flagMap := tc.flagMap(args)
 
 	flagValues := map[string]*Value{}
@@ -303,31 +358,34 @@ func (tc *TerminusCommand) Execute(args []string) (*ExecutorResponse, error) {
 		// Ignore string values. That's only for complete.
 		value, fullyProcessed, err := flag.ProcessArgs(args[(idx + 1):])
 		if err != nil {
-			return nil, fmt.Errorf("failed to process flags: %v", err)
+			cos.Stderr("failed to process flags: %v", err)
+			return nil, false
 		}
 
 		if fullyProcessed {
 			flagValues[flag.Name()] = value
 			idx += 1 + value.Length()
 		} else {
-			return nil, fmt.Errorf("not enough values passed to flag %q: TODO USAGE", flag.Name())
+			cos.Stderr("not enough values passed to flag %q", flag.Name())
+			return nil, false
 		}
 	}
 
 	// Populate args
-	// TODO: populate specific types?
 	argIdx := 0
 	populatedArgs := map[string]*Value{}
 	for idx := 0; idx < len(flaglessArgs); {
 		if argIdx >= len(tc.Args) {
-			return nil, fmt.Errorf("extra unknown args (%v)", flaglessArgs[idx:])
+			cos.Stderr("extra unknown args (%v)", flaglessArgs[idx:])
+			return nil, false
 		}
 
 		arg := tc.Args[argIdx]
 		// Ignore string values. That's only for complete.
 		value, fullyProcessed, err := arg.ProcessArgs(flaglessArgs[idx:])
 		if err != nil {
-			return nil, fmt.Errorf("failed to process args: %v", err)
+			cos.Stderr("failed to process args: %v", err)
+			return nil, false
 		}
 		populatedArgs[arg.Name()] = value
 
@@ -335,7 +393,8 @@ func (tc *TerminusCommand) Execute(args []string) (*ExecutorResponse, error) {
 			idx += value.Length()
 			argIdx++
 		} else {
-			return nil, fmt.Errorf("not enough arguments for %q arg", arg.Name())
+			cos.Stderr("not enough arguments for %q arg", arg.Name())
+			return nil, false
 		}
 	}
 
@@ -345,14 +404,16 @@ func (tc *TerminusCommand) Execute(args []string) (*ExecutorResponse, error) {
 
 	if argIdx != len(tc.Args) {
 		nextArg := tc.Args[argIdx]
-		return nil, fmt.Errorf("no argument provided for %q", nextArg.Name())
+		cos.Stderr("no argument provided for %q", nextArg.Name())
+		return nil, false
 	}
 
 	if tc.Executor == nil {
-		return nil, fmt.Errorf("no executor defined for command")
+		cos.Stderr("no executor defined for command")
+		return nil, false
 	}
 
-	return tc.Executor(populatedArgs, flagValues)
+	return tc.Executor(cos, populatedArgs, flagValues)
 }
 
 // Complete returns all possible autocomplete suggestions for the given list of arguments.

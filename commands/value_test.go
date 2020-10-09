@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -43,8 +42,10 @@ func TestValueComands(t *testing.T) {
 		wantIntList    *[]int
 		wantFloat      *float64
 		wantFloatList  *[]float64
-		wantErr        string
+		wantOK         bool
 		want           *ExecutorResponse
+		wantStdout     []string
+		wantStderr     []string
 	}{
 		{
 			name:       "string is populated",
@@ -53,6 +54,7 @@ func TestValueComands(t *testing.T) {
 			args:       []string{"string-val"},
 			wantString: stringP("string-val"),
 			want:       &ExecutorResponse{},
+			wantOK:     true,
 		},
 		{
 			name:           "string list is populated",
@@ -61,6 +63,7 @@ func TestValueComands(t *testing.T) {
 			args:           []string{"string", "list", "val"},
 			wantStringList: &[]string{"string", "list", "val"},
 			want:           &ExecutorResponse{},
+			wantOK:         true,
 		},
 		{
 			name:    "int is populated",
@@ -69,6 +72,7 @@ func TestValueComands(t *testing.T) {
 			args:    []string{"123"},
 			wantInt: intP(123),
 			want:    &ExecutorResponse{},
+			wantOK:  true,
 		},
 		{
 			name:        "int list is populated",
@@ -77,6 +81,7 @@ func TestValueComands(t *testing.T) {
 			args:        []string{"12", "345", "6"},
 			wantIntList: &[]int{12, 345, 6},
 			want:        &ExecutorResponse{},
+			wantOK:      true,
 		},
 		{
 			name:      "flaot is populated",
@@ -85,6 +90,7 @@ func TestValueComands(t *testing.T) {
 			args:      []string{"12.3"},
 			wantFloat: floatP(12.3),
 			want:      &ExecutorResponse{},
+			wantOK:    true,
 		},
 		{
 			name:          "float list is populated",
@@ -93,6 +99,7 @@ func TestValueComands(t *testing.T) {
 			args:          []string{"1.2", "-345", ".6"},
 			wantFloatList: &[]float64{1.2, -345, .6},
 			want:          &ExecutorResponse{},
+			wantOK:        true,
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
@@ -100,7 +107,7 @@ func TestValueComands(t *testing.T) {
 				Args: []Arg{
 					test.argDef,
 				},
-				Executor: func(args, flags map[string]*Value) (*ExecutorResponse, error) {
+				Executor: func(cos CommandOS, args, flags map[string]*Value) (*ExecutorResponse, bool) {
 					v := args[test.argDef.Name()]
 
 					// strings
@@ -127,22 +134,26 @@ func TestValueComands(t *testing.T) {
 						t.Errorf("FloatList() produced diff (-want, +got):\n%s", diff)
 					}
 
-					return &ExecutorResponse{}, nil
+					return &ExecutorResponse{}, true
 				},
 			}
 
-			got, err := Execute(cmd, test.args)
+			tcos := &TestCommandOS{}
+			got, ok := Execute(tcos, cmd, test.args)
 
-			if err != nil && test.wantErr == "" {
-				t.Fatalf("command.Execute(%v) returned an error (%v); want nil", test.args, err)
-			} else if err == nil && test.wantErr != "" {
-				t.Fatalf("command.Execute(%v) returned nil; want error with message %q", test.args, test.wantErr)
-			} else if err != nil && !strings.Contains(err.Error(), test.wantErr) {
-				t.Fatalf("command.Execute(%v) returned error (%v); want error with message %q", test.args, err, test.wantErr)
+			if ok != test.wantOK {
+				t.Fatalf("commands.Execute(%v) returned %v for ok; want %v", test.args, ok, test.wantOK)
 			}
 
 			if diff := cmp.Diff(test.want, got); diff != "" {
 				t.Errorf("command.Execute(%v) returned diff (-want, +got):\n%s", test.args, diff)
+			}
+
+			if diff := cmp.Diff(test.wantStdout, tcos.GetStdout()); diff != "" {
+				t.Errorf("command.Execute(%v) produced stdout diff (-want, +got):\n%s", test.args, diff)
+			}
+			if diff := cmp.Diff(test.wantStderr, tcos.GetStderr()); diff != "" {
+				t.Errorf("command.Execute(%v) produced stderr diff (-want, +got):\n%s", test.args, diff)
 			}
 		})
 	}

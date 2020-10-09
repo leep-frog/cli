@@ -7,13 +7,6 @@ import (
 	"github.com/leep-frog/cli/commands"
 )
 
-var (
-	AllCommands = []CLI{
-		//&todo.List{},
-		//&emacs.Emacs{},
-	}
-)
-
 type CLI interface {
 	Name() string
 	Alias() string
@@ -46,20 +39,22 @@ func Load(c CLI) error {
 	return c.Load(s)
 }
 
-func Execute(cli CLI, args []string) (*commands.ExecutorResponse, error) {
+func Execute(cos commands.CommandOS, cli CLI, args []string) (*commands.ExecutorResponse, bool) {
 	if err := Load(cli); err != nil {
-		return nil, fmt.Errorf("failed to load cli: %v", err)
+		cos.Stderr("failed to load cli: %v", err)
+		return nil, false
 	}
-	resp, err := commands.Execute(cli.Command(), args)
-	if err != nil {
-		return resp, err
+	resp, ok := commands.Execute(cos, cli.Command(), args)
+	if !ok {
+		return resp, ok
 	}
 	if cli.Changed() {
 		if err := Save(cli); err != nil {
-			return resp, fmt.Errorf("failed to save: %v", err)
+			cos.Stderr("failed to save CLI data: %v", err)
+			return resp, false
 		}
 	}
-	return resp, err
+	return resp, false
 }
 
 func Autocomplete(cli CLI, args []string, cursorIdx int) []string {

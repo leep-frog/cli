@@ -3,7 +3,6 @@ package commands
 // TODO: split this up into separate files (not separate packages).
 
 import (
-	"fmt"
 	"sort"
 	"strings"
 	"testing"
@@ -237,51 +236,53 @@ func TestExecute(t *testing.T) {
 		args             []string
 		ex               Executor
 		exResp           *ExecutorResponse
-		exErr            error
 		opts             []ArgOpt
 		want             *ExecutorResponse
+		wantStderr       []string
+		wantStdout       []string
 		wantExecuteArgs  map[string]*Value
 		wantExecuteFlags map[string]*Value
-		wantErr          string
+		wantOK           bool
 	}{
 		// Basic tests
 		{
-			name:    "empty args",
-			wantErr: "more args required",
+			name:       "empty args",
+			wantStderr: []string{"more args required"},
 		},
 		{
-			name:    "incomplete command",
-			args:    []string{"huh"},
-			wantErr: `unknown subcommand and no terminus command defined`,
+			name:       "incomplete command",
+			args:       []string{"huh"},
+			wantStderr: []string{`unknown subcommand and no terminus command defined`},
 		},
 		{
-			name:    "not enough flag values",
-			args:    []string{"basic", "--state"},
-			wantErr: `not enough values passed to flag "state"`,
+			name:       "not enough flag values",
+			args:       []string{"basic", "--state"},
+			wantStderr: []string{`not enough values passed to flag "state"`},
 		},
 		{
-			name:    "too many positional arguments",
-			args:    []string{"basic", "--state", "maine", "build", "one", "else", "too"},
-			wantErr: "extra unknown args ([else too])",
+			name:       "too many positional arguments",
+			args:       []string{"basic", "--state", "maine", "build", "one", "else", "too"},
+			wantStderr: []string{"extra unknown args ([else too])"},
 		},
 		{
-			name:    "not enough positional arguments",
-			args:    []string{"intermediate", "--state", "maine", "one"},
-			wantErr: `not enough arguments for "syllable" arg`,
+			name:       "not enough positional arguments",
+			args:       []string{"intermediate", "--state", "maine", "one"},
+			wantStderr: []string{`not enough arguments for "syllable" arg`},
 		},
 		{
-			name:    "not enough positional arguments",
-			args:    []string{"basic", "--state", "maine"},
-			wantErr: `no argument provided for "pos_1"`,
+			name:       "not enough positional arguments",
+			args:       []string{"basic", "--state", "maine"},
+			wantStderr: []string{`no argument provided for "pos_1"`},
 		},
 		{
-			name:    "no executor defined",
-			args:    []string{"advanced", "other"},
-			wantErr: "no executor defined for command",
+			name:       "no executor defined",
+			args:       []string{"advanced", "other"},
+			wantStderr: []string{"no executor defined for command"},
 		},
 		{
-			name: "works when CommandBranch defines terminusCommand",
-			args: []string{"advanced", "not", "registered"},
+			name:   "works when CommandBranch defines terminusCommand",
+			args:   []string{"advanced", "not", "registered"},
+			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
 				"cb-command": &Value{
 					stringList: []string{"not", "registered"},
@@ -290,15 +291,17 @@ func TestExecute(t *testing.T) {
 		},
 		{
 			name: "fails when CommandBranch defines executor fails",
-			ex: func(args map[string]*Value, flags map[string]*Value) (*ExecutorResponse, error) {
-				return nil, fmt.Errorf("bad news bears")
+			ex: func(cos CommandOS, args map[string]*Value, flags map[string]*Value) (*ExecutorResponse, bool) {
+				cos.Stderr("bad news bears")
+				return nil, false
 			},
-			args:    []string{"advanced", "not", "registered"},
-			wantErr: "bad news bears",
+			args:       []string{"advanced", "not", "registered"},
+			wantStderr: []string{"bad news bears"},
 		},
 		{
-			name: "works with no flags",
-			args: []string{"basic", "un", "deux"},
+			name:   "works with no flags",
+			args:   []string{"basic", "un", "deux"},
+			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
 				"pos_1": &Value{
 					stringList: []string{"un"},
@@ -309,8 +312,9 @@ func TestExecute(t *testing.T) {
 			},
 		},
 		{
-			name: "works with flags at the beginning",
-			args: []string{"basic", "--state", "jersey", "trois", "quatre"},
+			name:   "works with flags at the beginning",
+			args:   []string{"basic", "--state", "jersey", "trois", "quatre"},
+			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
 				"pos_1": &Value{
 					stringList: []string{"trois"},
@@ -326,8 +330,9 @@ func TestExecute(t *testing.T) {
 			},
 		},
 		{
-			name: "works with flags in the middle",
-			args: []string{"basic", "trois", "--state", "massachusetts", "quatre"},
+			name:   "works with flags in the middle",
+			args:   []string{"basic", "trois", "--state", "massachusetts", "quatre"},
+			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
 				"pos_1": &Value{
 					stringList: []string{"trois"},
@@ -343,8 +348,9 @@ func TestExecute(t *testing.T) {
 			},
 		},
 		{
-			name: "works with flags at the end",
-			args: []string{"basic", "trois", "quatre", "-s", "connecticut"},
+			name:   "works with flags at the end",
+			args:   []string{"basic", "trois", "quatre", "-s", "connecticut"},
+			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
 				"pos_1": &Value{
 					stringList: []string{"trois"},
@@ -360,8 +366,9 @@ func TestExecute(t *testing.T) {
 			},
 		},
 		{
-			name: "works with boolean flag",
-			args: []string{"basic", "trois", "--american", "quatre"},
+			name:   "works with boolean flag",
+			args:   []string{"basic", "trois", "--american", "quatre"},
+			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
 				"pos_1": &Value{
 					stringList: []string{"trois"},
@@ -377,8 +384,9 @@ func TestExecute(t *testing.T) {
 			},
 		},
 		{
-			name: "works with short boolean flag",
-			args: []string{"basic", "-a", "trois", "quatre"},
+			name:   "works with short boolean flag",
+			args:   []string{"basic", "-a", "trois", "quatre"},
+			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
 				"pos_1": &Value{
 					stringList: []string{"trois"},
@@ -394,8 +402,9 @@ func TestExecute(t *testing.T) {
 			},
 		},
 		{
-			name: "works with arguments with multiple args",
-			args: []string{"intermediate", "first", "2nd", "bronze"},
+			name:   "works with arguments with multiple args",
+			args:   []string{"intermediate", "first", "2nd", "bronze"},
+			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
 				"syllable": &Value{
 					stringList: []string{"first", "2nd", "bronze"},
@@ -404,13 +413,14 @@ func TestExecute(t *testing.T) {
 		},
 		// Test lists
 		{
-			name:    "list fails when not enough args",
-			args:    []string{"advanced", "liszt"},
-			wantErr: `no argument provided for "list-arg"`,
+			name:       "list fails when not enough args",
+			args:       []string{"advanced", "liszt"},
+			wantStderr: []string{`no argument provided for "list-arg"`},
 		},
 		{
-			name: "list succeeds when at minimum args",
-			args: []string{"advanced", "liszt", "piano"},
+			name:   "list succeeds when at minimum args",
+			args:   []string{"advanced", "liszt", "piano"},
+			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
 				"list-arg": &Value{
 					stringList: []string{"piano"},
@@ -418,8 +428,9 @@ func TestExecute(t *testing.T) {
 			},
 		},
 		{
-			name: "list succeeds when extra args",
-			args: []string{"advanced", "liszt", "piano", "harp", "picolo"},
+			name:   "list succeeds when extra args",
+			args:   []string{"advanced", "liszt", "piano", "harp", "picolo"},
+			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
 				"list-arg": &Value{
 					stringList: []string{"piano", "harp", "picolo"},
@@ -427,8 +438,9 @@ func TestExecute(t *testing.T) {
 			},
 		},
 		{
-			name: "list succeeds when flag in between",
-			args: []string{"advanced", "liszt", "piano", "--inside", "56", "34", "harp", "picolo"},
+			name:   "list succeeds when flag in between",
+			args:   []string{"advanced", "liszt", "piano", "--inside", "56", "34", "harp", "picolo"},
+			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
 				"list-arg": &Value{
 					stringList: []string{"piano", "harp", "picolo"},
@@ -441,8 +453,9 @@ func TestExecute(t *testing.T) {
 			},
 		},
 		{
-			name: "list succeeds when short flag in between",
-			args: []string{"advanced", "liszt", "piano", "-i", "56", "34", "harp", "picolo"},
+			name:   "list succeeds when short flag in between",
+			args:   []string{"advanced", "liszt", "piano", "-i", "56", "34", "harp", "picolo"},
+			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
 				"list-arg": &Value{
 					stringList: []string{"piano", "harp", "picolo"},
@@ -456,13 +469,14 @@ func TestExecute(t *testing.T) {
 		},
 		// Test extra optional arguments.
 		{
-			name:    "optional argument doesn't accept less than minimum",
-			args:    []string{"sometimes"},
-			wantErr: `no argument provided for "opt group"`,
+			name:       "optional argument doesn't accept less than minimum",
+			args:       []string{"sometimes"},
+			wantStderr: []string{`no argument provided for "opt group"`},
 		},
 		{
-			name: "optional argument accepts minimum",
-			args: []string{"sometimes", "temp"},
+			name:   "optional argument accepts minimum",
+			args:   []string{"sometimes", "temp"},
+			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
 				"opt group": &Value{
 					stringList: []string{"temp"},
@@ -470,8 +484,9 @@ func TestExecute(t *testing.T) {
 			},
 		},
 		{
-			name: "optional argument accepts middle amount",
-			args: []string{"sometimes", "temp", "occasional"},
+			name:   "optional argument accepts middle amount",
+			args:   []string{"sometimes", "temp", "occasional"},
+			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
 				"opt group": &Value{
 					stringList: []string{"temp", "occasional"},
@@ -479,8 +494,9 @@ func TestExecute(t *testing.T) {
 			},
 		},
 		{
-			name: "optional argument accepts max amount",
-			args: []string{"sometimes", "temp", "occasional", "tmp", "temporary"},
+			name:   "optional argument accepts max amount",
+			args:   []string{"sometimes", "temp", "occasional", "tmp", "temporary"},
+			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
 				"opt group": &Value{
 					stringList: []string{"temp", "occasional", "tmp", "temporary"},
@@ -488,43 +504,44 @@ func TestExecute(t *testing.T) {
 			},
 		},
 		{
-			name:    "optional argument does not accept more than max amount",
-			args:    []string{"sometimes", "temp", "occasional", "tmp", "temporary", "occ"},
-			wantErr: "extra unknown args ([occ])",
+			name:       "optional argument does not accept more than max amount",
+			args:       []string{"sometimes", "temp", "occasional", "tmp", "temporary", "occ"},
+			wantStderr: []string{"extra unknown args ([occ])"},
 		},
 		// Test return values
 		{
-			name: "returns what the executor returns",
-			args: []string{"intermediate", "first", "2nd", "bronze"},
+			name:   "returns what the executor returns",
+			args:   []string{"intermediate", "first", "2nd", "bronze"},
+			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
 				"syllable": &Value{
 					stringList: []string{"first", "2nd", "bronze"},
 				},
 			},
-			exResp: &ExecutorResponse{Stdout: []string{"this", "was a", "success"}},
-			want:   &ExecutorResponse{Stdout: []string{"this", "was a", "success"}},
+			exResp: &ExecutorResponse{Executable: []string{"this", "was a", "success"}},
+			want:   &ExecutorResponse{Executable: []string{"this", "was a", "success"}},
 		},
 		{
-			name: "fails when executor returns an error",
+			name: "fails when executor returns false",
 			args: []string{"intermediate", "first", "2nd", "bronze"},
-			wantExecuteArgs: map[string]*Value{
-				"syllable": &Value{
-					stringList: []string{"first", "2nd", "bronze"},
-				},
+			ex: func(cos CommandOS, args, flags map[string]*Value) (*ExecutorResponse, bool) {
+				cos.Stderr("this was a failure")
+				return nil, false
 			},
-			exErr:   fmt.Errorf("this was a failure"),
-			wantErr: "this was a failure",
+			wantStderr: []string{"this was a failure"},
 		},
 		// CommandBranch with terminus command
 		{
-			name: "branch command's terminus command with no arguments",
-			args: []string{"advanced"},
+			name:   "branch command's terminus command with no arguments",
+			args:   []string{"advanced"},
+			wantOK: true,
 		},
 		// Commands with different value types.
 		// string argument type
 		{
-			name: "handles string argument",
-			args: []string{"valueTypes", "string", "hello"},
+			name:   "handles string argument",
+			args:   []string{"valueTypes", "string", "hello"},
+			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
 				"req": &Value{
 					valType:   StringType,
@@ -533,8 +550,9 @@ func TestExecute(t *testing.T) {
 			},
 		},
 		{
-			name: "handles optional string argument",
-			args: []string{"valueTypes", "string", "hello", "there"},
+			name:   "handles optional string argument",
+			args:   []string{"valueTypes", "string", "hello", "there"},
+			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
 				"req": &Value{
 					valType:   StringType,
@@ -548,8 +566,9 @@ func TestExecute(t *testing.T) {
 		},
 		// stringList argument type
 		{
-			name: "handles stringList argument",
-			args: []string{"valueTypes", "stringList", "its", "me"},
+			name:   "handles stringList argument",
+			args:   []string{"valueTypes", "stringList", "its", "me"},
+			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
 				"req": &Value{
 					valType:    StringListType,
@@ -558,8 +577,9 @@ func TestExecute(t *testing.T) {
 			},
 		},
 		{
-			name: "handles optional stringList arguments",
-			args: []string{"valueTypes", "stringList", "its", "me", "mario"},
+			name:   "handles optional stringList arguments",
+			args:   []string{"valueTypes", "stringList", "its", "me", "mario"},
+			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
 				"req": &Value{
 					valType:    StringListType,
@@ -569,8 +589,9 @@ func TestExecute(t *testing.T) {
 		},
 		// int argument type
 		{
-			name: "handles int argument",
-			args: []string{"valueTypes", "int", "123"},
+			name:   "handles int argument",
+			args:   []string{"valueTypes", "int", "123"},
+			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
 				"req": &Value{
 					valType: IntType,
@@ -579,8 +600,9 @@ func TestExecute(t *testing.T) {
 			},
 		},
 		{
-			name: "handles optional int argument",
-			args: []string{"valueTypes", "int", "123", "-45"},
+			name:   "handles optional int argument",
+			args:   []string{"valueTypes", "int", "123", "-45"},
+			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
 				"req": &Value{
 					valType: IntType,
@@ -593,19 +615,20 @@ func TestExecute(t *testing.T) {
 			},
 		},
 		{
-			name:    "int argument requires int value",
-			args:    []string{"valueTypes", "int", "123.45"},
-			wantErr: `failed to process args: failed to convert value: argument should be an integer: strconv.Atoi: parsing "123.45": invalid syntax`,
+			name:       "int argument requires int value",
+			args:       []string{"valueTypes", "int", "123.45"},
+			wantStderr: []string{`failed to process args: failed to convert value: argument should be an integer: strconv.Atoi: parsing "123.45": invalid syntax`},
 		},
 		{
-			name:    "int flag requires int value",
-			args:    []string{"valueTypes", "int", "-v", "123.45"},
-			wantErr: `failed to process flags: failed to convert value: argument should be an integer: strconv.Atoi: parsing "123.45": invalid syntax`,
+			name:       "int flag requires int value",
+			args:       []string{"valueTypes", "int", "-v", "123.45"},
+			wantStderr: []string{`failed to process flags: failed to convert value: argument should be an integer: strconv.Atoi: parsing "123.45": invalid syntax`},
 		},
 		// intList argument type
 		{
-			name: "handles intList argument",
-			args: []string{"valueTypes", "intList", "123", "-45"},
+			name:   "handles intList argument",
+			args:   []string{"valueTypes", "intList", "123", "-45"},
+			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
 				"req": &Value{
 					valType: IntListType,
@@ -614,8 +637,9 @@ func TestExecute(t *testing.T) {
 			},
 		},
 		{
-			name: "handles optional intList arguments",
-			args: []string{"valueTypes", "intList", "123", "-45", "0"},
+			name:   "handles optional intList arguments",
+			args:   []string{"valueTypes", "intList", "123", "-45", "0"},
+			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
 				"req": &Value{
 					valType: IntListType,
@@ -624,19 +648,20 @@ func TestExecute(t *testing.T) {
 			},
 		},
 		{
-			name:    "int list argument requires int values",
-			args:    []string{"valueTypes", "intList", "-10", "123.45"},
-			wantErr: `failed to process args: failed to convert value: int required for IntList argument type: strconv.Atoi: parsing "123.45": invalid syntax`,
+			name:       "int list argument requires int values",
+			args:       []string{"valueTypes", "intList", "-10", "123.45"},
+			wantStderr: []string{`failed to process args: failed to convert value: int required for IntList argument type: strconv.Atoi: parsing "123.45": invalid syntax`},
 		},
 		{
-			name:    "int list argument requires int values",
-			args:    []string{"valueTypes", "intList", "-v", "123.45"},
-			wantErr: `failed to process flags: failed to convert value: int required for IntList argument type: strconv.Atoi: parsing "123.45": invalid syntax`,
+			name:       "int list argument requires int values",
+			args:       []string{"valueTypes", "intList", "-v", "123.45"},
+			wantStderr: []string{`failed to process flags: failed to convert value: int required for IntList argument type: strconv.Atoi: parsing "123.45": invalid syntax`},
 		},
 		// float argument type
 		{
-			name: "handles float argument",
-			args: []string{"valueTypes", "float", "123.45"},
+			name:   "handles float argument",
+			args:   []string{"valueTypes", "float", "123.45"},
+			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
 				"req": &Value{
 					valType:  FloatType,
@@ -645,8 +670,9 @@ func TestExecute(t *testing.T) {
 			},
 		},
 		{
-			name: "handles optional float argument",
-			args: []string{"valueTypes", "float", "123.45", "-67"},
+			name:   "handles optional float argument",
+			args:   []string{"valueTypes", "float", "123.45", "-67"},
+			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
 				"req": &Value{
 					valType:  FloatType,
@@ -659,19 +685,20 @@ func TestExecute(t *testing.T) {
 			},
 		},
 		{
-			name:    "float argument requires float value",
-			args:    []string{"valueTypes", "float", "twelve"},
-			wantErr: `failed to process args: failed to convert value: argument should be a float: strconv.ParseFloat: parsing "twelve": invalid syntax`,
+			name:       "float argument requires float value",
+			args:       []string{"valueTypes", "float", "twelve"},
+			wantStderr: []string{`failed to process args: failed to convert value: argument should be a float: strconv.ParseFloat: parsing "twelve": invalid syntax`},
 		},
 		{
-			name:    "float flag requires float value",
-			args:    []string{"valueTypes", "float", "--vFlag", "twelve"},
-			wantErr: `failed to process flags: failed to convert value: argument should be a float: strconv.ParseFloat: parsing "twelve": invalid syntax`,
+			name:       "float flag requires float value",
+			args:       []string{"valueTypes", "float", "--vFlag", "twelve"},
+			wantStderr: []string{`failed to process flags: failed to convert value: argument should be a float: strconv.ParseFloat: parsing "twelve": invalid syntax`},
 		},
 		// floatList argument type
 		{
-			name: "handles floatList argument",
-			args: []string{"valueTypes", "floatList", "123.45", "-67"},
+			name:   "handles floatList argument",
+			args:   []string{"valueTypes", "floatList", "123.45", "-67"},
+			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
 				"req": &Value{
 					valType:   FloatListType,
@@ -680,8 +707,9 @@ func TestExecute(t *testing.T) {
 			},
 		},
 		{
-			name: "handles optional floatList arguments",
-			args: []string{"valueTypes", "floatList", "123.45", "-67", "0"},
+			name:   "handles optional floatList arguments",
+			args:   []string{"valueTypes", "floatList", "123.45", "-67", "0"},
+			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
 				"req": &Value{
 					valType:   FloatListType,
@@ -690,14 +718,14 @@ func TestExecute(t *testing.T) {
 			},
 		},
 		{
-			name:    "float list argument requires float values",
-			args:    []string{"valueTypes", "floatList", "-10", "twelve"},
-			wantErr: `failed to process args: failed to convert value: float required for FloatList argument type: strconv.ParseFloat: parsing "twelve": invalid syntax`,
+			name:       "float list argument requires float values",
+			args:       []string{"valueTypes", "floatList", "-10", "twelve"},
+			wantStderr: []string{`failed to process args: failed to convert value: float required for FloatList argument type: strconv.ParseFloat: parsing "twelve": invalid syntax`},
 		},
 		{
-			name:    "float list flag requires float values",
-			args:    []string{"valueTypes", "floatList", "-v", "twelve"},
-			wantErr: `failed to process flags: failed to convert value: float required for FloatList argument type: strconv.ParseFloat: parsing "twelve": invalid syntax`,
+			name:       "float list flag requires float values",
+			args:       []string{"valueTypes", "floatList", "-v", "twelve"},
+			wantStderr: []string{`failed to process flags: failed to convert value: float required for FloatList argument type: strconv.ParseFloat: parsing "twelve": invalid syntax`},
 		},
 		// ArgOpt tests
 		{
@@ -706,7 +734,7 @@ func TestExecute(t *testing.T) {
 			opts: []ArgOpt{
 				IntEQ(123),
 			},
-			wantErr: "failed to process args: failed to convert value: option can only be bound to arguments with type 2",
+			wantStderr: []string{"failed to process args: failed to convert value: option can only be bound to arguments with type 2"},
 		},
 		// Contains
 		{
@@ -715,6 +743,7 @@ func TestExecute(t *testing.T) {
 			opts: []ArgOpt{
 				Contains("good"),
 			},
+			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
 				"req": &Value{
 					valType:   StringType,
@@ -728,7 +757,7 @@ func TestExecute(t *testing.T) {
 			opts: []ArgOpt{
 				Contains("good"),
 			},
-			wantErr: `failed to process args: failed to convert value: validation failed: [Contains] value doesn't contain substring "good"`,
+			wantStderr: []string{`failed to process args: failed to convert value: validation failed: [Contains] value doesn't contain substring "good"`},
 		},
 		// MinLength
 		{
@@ -737,7 +766,7 @@ func TestExecute(t *testing.T) {
 			opts: []ArgOpt{
 				MinLength(3),
 			},
-			wantErr: `failed to process args: failed to convert value: validation failed: [MinLength] value must be at least 3 characters`,
+			wantStderr: []string{`failed to process args: failed to convert value: validation failed: [MinLength] value must be at least 3 characters`},
 		},
 		{
 			name: "MinLength passes when exact number of characters",
@@ -745,6 +774,7 @@ func TestExecute(t *testing.T) {
 			opts: []ArgOpt{
 				MinLength(3),
 			},
+			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
 				"req": &Value{
 					valType:   StringType,
@@ -758,6 +788,7 @@ func TestExecute(t *testing.T) {
 			opts: []ArgOpt{
 				MinLength(3),
 			},
+			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
 				"req": &Value{
 					valType:   StringType,
@@ -772,6 +803,7 @@ func TestExecute(t *testing.T) {
 			opts: []ArgOpt{
 				IntEQ(24),
 			},
+			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
 				"req": &Value{
 					valType: IntType,
@@ -785,7 +817,7 @@ func TestExecute(t *testing.T) {
 			opts: []ArgOpt{
 				IntEQ(24),
 			},
-			wantErr: "failed to process args: failed to convert value: validation failed: [IntEQ] value isn't equal to 24",
+			wantStderr: []string{"failed to process args: failed to convert value: validation failed: [IntEQ] value isn't equal to 24"},
 		},
 		// IntNE
 		{
@@ -794,6 +826,7 @@ func TestExecute(t *testing.T) {
 			opts: []ArgOpt{
 				IntNE(25),
 			},
+			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
 				"req": &Value{
 					valType: IntType,
@@ -807,7 +840,7 @@ func TestExecute(t *testing.T) {
 			opts: []ArgOpt{
 				IntNE(25),
 			},
-			wantErr: "failed to process args: failed to convert value: validation failed: [IntNE] value isn't not equal to 25",
+			wantStderr: []string{"failed to process args: failed to convert value: validation failed: [IntNE] value isn't not equal to 25"},
 		},
 		// IntLT
 		{
@@ -816,6 +849,7 @@ func TestExecute(t *testing.T) {
 			opts: []ArgOpt{
 				IntLT(25),
 			},
+			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
 				"req": &Value{
 					valType: IntType,
@@ -829,7 +863,7 @@ func TestExecute(t *testing.T) {
 			opts: []ArgOpt{
 				IntLT(25),
 			},
-			wantErr: "failed to process args: failed to convert value: validation failed: [IntLT] value isn't less than 25",
+			wantStderr: []string{"failed to process args: failed to convert value: validation failed: [IntLT] value isn't less than 25"},
 		},
 		{
 			name: "IntLT fails when not less",
@@ -837,7 +871,7 @@ func TestExecute(t *testing.T) {
 			opts: []ArgOpt{
 				IntLT(25),
 			},
-			wantErr: "failed to process args: failed to convert value: validation failed: [IntLT] value isn't less than 25",
+			wantStderr: []string{"failed to process args: failed to convert value: validation failed: [IntLT] value isn't less than 25"},
 		},
 		// IntLTE
 		{
@@ -846,6 +880,7 @@ func TestExecute(t *testing.T) {
 			opts: []ArgOpt{
 				IntLTE(25),
 			},
+			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
 				"req": &Value{
 					valType: IntType,
@@ -859,6 +894,7 @@ func TestExecute(t *testing.T) {
 			opts: []ArgOpt{
 				IntLTE(25),
 			},
+			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
 				"req": &Value{
 					valType: IntType,
@@ -872,7 +908,7 @@ func TestExecute(t *testing.T) {
 			opts: []ArgOpt{
 				IntLTE(25),
 			},
-			wantErr: "failed to process args: failed to convert value: validation failed: [IntLTE] value isn't less than or equal to 25",
+			wantStderr: []string{"failed to process args: failed to convert value: validation failed: [IntLTE] value isn't less than or equal to 25"},
 		},
 		// IntLT
 		{
@@ -881,7 +917,7 @@ func TestExecute(t *testing.T) {
 			opts: []ArgOpt{
 				IntGT(25),
 			},
-			wantErr: "failed to process args: failed to convert value: validation failed: [IntGT] value isn't greater than 25",
+			wantStderr: []string{"failed to process args: failed to convert value: validation failed: [IntGT] value isn't greater than 25"},
 		},
 		{
 			name: "IntGT fails when equal",
@@ -889,7 +925,7 @@ func TestExecute(t *testing.T) {
 			opts: []ArgOpt{
 				IntGT(25),
 			},
-			wantErr: "failed to process args: failed to convert value: validation failed: [IntGT] value isn't greater than 25",
+			wantStderr: []string{"failed to process args: failed to convert value: validation failed: [IntGT] value isn't greater than 25"},
 		},
 		{
 			name: "IntGT works",
@@ -897,6 +933,7 @@ func TestExecute(t *testing.T) {
 			opts: []ArgOpt{
 				IntGT(25),
 			},
+			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
 				"req": &Value{
 					valType: IntType,
@@ -911,7 +948,7 @@ func TestExecute(t *testing.T) {
 			opts: []ArgOpt{
 				IntGTE(25),
 			},
-			wantErr: "failed to process args: failed to convert value: validation failed: [IntGTE] value isn't greater than or equal to 25",
+			wantStderr: []string{"failed to process args: failed to convert value: validation failed: [IntGTE] value isn't greater than or equal to 25"},
 		},
 		{
 			name: "IntGTE works when equal",
@@ -919,6 +956,7 @@ func TestExecute(t *testing.T) {
 			opts: []ArgOpt{
 				IntGTE(25),
 			},
+			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
 				"req": &Value{
 					valType: IntType,
@@ -932,6 +970,7 @@ func TestExecute(t *testing.T) {
 			opts: []ArgOpt{
 				IntGTE(25),
 			},
+			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
 				"req": &Value{
 					valType: IntType,
@@ -946,7 +985,7 @@ func TestExecute(t *testing.T) {
 			opts: []ArgOpt{
 				IntPositive(),
 			},
-			wantErr: "failed to process args: failed to convert value: validation failed: [IntPositive] value isn't positive",
+			wantStderr: []string{"failed to process args: failed to convert value: validation failed: [IntPositive] value isn't positive"},
 		},
 		{
 			name: "IntPositive fails when zero",
@@ -954,7 +993,7 @@ func TestExecute(t *testing.T) {
 			opts: []ArgOpt{
 				IntPositive(),
 			},
-			wantErr: "failed to process args: failed to convert value: validation failed: [IntPositive] value isn't positive",
+			wantStderr: []string{"failed to process args: failed to convert value: validation failed: [IntPositive] value isn't positive"},
 		},
 		{
 			name: "IntPositive works when positive",
@@ -962,6 +1001,7 @@ func TestExecute(t *testing.T) {
 			opts: []ArgOpt{
 				IntPositive(),
 			},
+			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
 				"req": &Value{
 					valType: IntType,
@@ -976,6 +1016,7 @@ func TestExecute(t *testing.T) {
 			opts: []ArgOpt{
 				IntNegative(),
 			},
+			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
 				"req": &Value{
 					valType: IntType,
@@ -989,7 +1030,7 @@ func TestExecute(t *testing.T) {
 			opts: []ArgOpt{
 				IntNegative(),
 			},
-			wantErr: "failed to process args: failed to convert value: validation failed: [IntNegative] value isn't negative",
+			wantStderr: []string{"failed to process args: failed to convert value: validation failed: [IntNegative] value isn't negative"},
 		},
 		{
 			name: "IntNegative fails when positive",
@@ -997,7 +1038,7 @@ func TestExecute(t *testing.T) {
 			opts: []ArgOpt{
 				IntNegative(),
 			},
-			wantErr: "failed to process args: failed to convert value: validation failed: [IntNegative] value isn't negative",
+			wantStderr: []string{"failed to process args: failed to convert value: validation failed: [IntNegative] value isn't negative"},
 		},
 		// IntNonNegative
 		{
@@ -1006,7 +1047,7 @@ func TestExecute(t *testing.T) {
 			opts: []ArgOpt{
 				IntNonNegative(),
 			},
-			wantErr: "failed to process args: failed to convert value: validation failed: [IntNonNegative] value isn't non-negative",
+			wantStderr: []string{"failed to process args: failed to convert value: validation failed: [IntNonNegative] value isn't non-negative"},
 		},
 		{
 			name: "IntNonNegative works when zero",
@@ -1014,6 +1055,7 @@ func TestExecute(t *testing.T) {
 			opts: []ArgOpt{
 				IntNonNegative(),
 			},
+			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
 				"req": &Value{
 					valType: IntType,
@@ -1027,6 +1069,7 @@ func TestExecute(t *testing.T) {
 			opts: []ArgOpt{
 				IntNonNegative(),
 			},
+			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
 				"req": &Value{
 					valType: IntType,
@@ -1041,6 +1084,7 @@ func TestExecute(t *testing.T) {
 			opts: []ArgOpt{
 				FloatEQ(24),
 			},
+			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
 				"req": &Value{
 					valType:  FloatType,
@@ -1054,7 +1098,7 @@ func TestExecute(t *testing.T) {
 			opts: []ArgOpt{
 				FloatEQ(24),
 			},
-			wantErr: "failed to process args: failed to convert value: validation failed: [FloatEQ] value isn't equal to 24",
+			wantStderr: []string{"failed to process args: failed to convert value: validation failed: [FloatEQ] value isn't equal to 24.00"},
 		},
 		// FloatNE
 		{
@@ -1063,6 +1107,7 @@ func TestExecute(t *testing.T) {
 			opts: []ArgOpt{
 				FloatNE(25),
 			},
+			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
 				"req": &Value{
 					valType:  FloatType,
@@ -1076,7 +1121,7 @@ func TestExecute(t *testing.T) {
 			opts: []ArgOpt{
 				FloatNE(25),
 			},
-			wantErr: "failed to process args: failed to convert value: validation failed: [FloatNE] value isn't not equal to 25",
+			wantStderr: []string{"failed to process args: failed to convert value: validation failed: [FloatNE] value isn't not equal to 25.00"},
 		},
 		// FloatLT
 		{
@@ -1085,6 +1130,7 @@ func TestExecute(t *testing.T) {
 			opts: []ArgOpt{
 				FloatLT(25),
 			},
+			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
 				"req": &Value{
 					valType:  FloatType,
@@ -1098,7 +1144,7 @@ func TestExecute(t *testing.T) {
 			opts: []ArgOpt{
 				FloatLT(25),
 			},
-			wantErr: "failed to process args: failed to convert value: validation failed: [FloatLT] value isn't less than 25",
+			wantStderr: []string{"failed to process args: failed to convert value: validation failed: [FloatLT] value isn't less than 25.00"},
 		},
 		{
 			name: "FloatLT fails when not less",
@@ -1106,7 +1152,7 @@ func TestExecute(t *testing.T) {
 			opts: []ArgOpt{
 				FloatLT(25),
 			},
-			wantErr: "failed to process args: failed to convert value: validation failed: [FloatLT] value isn't less than 25",
+			wantStderr: []string{"failed to process args: failed to convert value: validation failed: [FloatLT] value isn't less than 25.00"},
 		},
 		// FloatLTE
 		{
@@ -1115,6 +1161,7 @@ func TestExecute(t *testing.T) {
 			opts: []ArgOpt{
 				FloatLTE(25),
 			},
+			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
 				"req": &Value{
 					valType:  FloatType,
@@ -1128,6 +1175,7 @@ func TestExecute(t *testing.T) {
 			opts: []ArgOpt{
 				FloatLTE(25),
 			},
+			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
 				"req": &Value{
 					valType:  FloatType,
@@ -1141,7 +1189,7 @@ func TestExecute(t *testing.T) {
 			opts: []ArgOpt{
 				FloatLTE(25),
 			},
-			wantErr: "failed to process args: failed to convert value: validation failed: [FloatLTE] value isn't less than or equal to 25",
+			wantStderr: []string{"failed to process args: failed to convert value: validation failed: [FloatLTE] value isn't less than or equal to 25.00"},
 		},
 		// FloatGT
 		{
@@ -1150,7 +1198,7 @@ func TestExecute(t *testing.T) {
 			opts: []ArgOpt{
 				FloatGT(25),
 			},
-			wantErr: "failed to process args: failed to convert value: validation failed: [FloatGT] value isn't greater than 25",
+			wantStderr: []string{"failed to process args: failed to convert value: validation failed: [FloatGT] value isn't greater than 25.00"},
 		},
 		{
 			name: "FloatGT fails when equal",
@@ -1158,7 +1206,7 @@ func TestExecute(t *testing.T) {
 			opts: []ArgOpt{
 				FloatGT(25),
 			},
-			wantErr: "failed to process args: failed to convert value: validation failed: [FloatGT] value isn't greater than 25",
+			wantStderr: []string{"failed to process args: failed to convert value: validation failed: [FloatGT] value isn't greater than 25.00"},
 		},
 		{
 			name: "FloatGT works",
@@ -1166,6 +1214,7 @@ func TestExecute(t *testing.T) {
 			opts: []ArgOpt{
 				FloatGT(25),
 			},
+			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
 				"req": &Value{
 					valType:  FloatType,
@@ -1180,7 +1229,7 @@ func TestExecute(t *testing.T) {
 			opts: []ArgOpt{
 				FloatGTE(25),
 			},
-			wantErr: "failed to process args: failed to convert value: validation failed: [FloatGTE] value isn't greater than or equal to 25",
+			wantStderr: []string{"failed to process args: failed to convert value: validation failed: [FloatGTE] value isn't greater than or equal to 25.00"},
 		},
 		{
 			name: "FloatGTE works when equal",
@@ -1188,6 +1237,7 @@ func TestExecute(t *testing.T) {
 			opts: []ArgOpt{
 				FloatGTE(25),
 			},
+			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
 				"req": &Value{
 					valType:  FloatType,
@@ -1201,6 +1251,7 @@ func TestExecute(t *testing.T) {
 			opts: []ArgOpt{
 				FloatGTE(25),
 			},
+			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
 				"req": &Value{
 					valType:  FloatType,
@@ -1215,7 +1266,7 @@ func TestExecute(t *testing.T) {
 			opts: []ArgOpt{
 				FloatPositive(),
 			},
-			wantErr: "failed to process args: failed to convert value: validation failed: [FloatPositive] value isn't positive",
+			wantStderr: []string{"failed to process args: failed to convert value: validation failed: [FloatPositive] value isn't positive"},
 		},
 		{
 			name: "FloatPositive fails when zero",
@@ -1223,7 +1274,7 @@ func TestExecute(t *testing.T) {
 			opts: []ArgOpt{
 				FloatPositive(),
 			},
-			wantErr: "failed to process args: failed to convert value: validation failed: [FloatPositive] value isn't positive",
+			wantStderr: []string{"failed to process args: failed to convert value: validation failed: [FloatPositive] value isn't positive"},
 		},
 		{
 			name: "FloatPositive works when positive",
@@ -1231,6 +1282,7 @@ func TestExecute(t *testing.T) {
 			opts: []ArgOpt{
 				FloatPositive(),
 			},
+			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
 				"req": &Value{
 					valType:  FloatType,
@@ -1245,6 +1297,7 @@ func TestExecute(t *testing.T) {
 			opts: []ArgOpt{
 				FloatNegative(),
 			},
+			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
 				"req": &Value{
 					valType:  FloatType,
@@ -1258,7 +1311,7 @@ func TestExecute(t *testing.T) {
 			opts: []ArgOpt{
 				FloatNegative(),
 			},
-			wantErr: "failed to process args: failed to convert value: validation failed: [FloatNegative] value isn't negative",
+			wantStderr: []string{"failed to process args: failed to convert value: validation failed: [FloatNegative] value isn't negative"},
 		},
 		{
 			name: "FloatNegative fails when positive",
@@ -1266,7 +1319,7 @@ func TestExecute(t *testing.T) {
 			opts: []ArgOpt{
 				FloatNegative(),
 			},
-			wantErr: "failed to process args: failed to convert value: validation failed: [FloatNegative] value isn't negative",
+			wantStderr: []string{"failed to process args: failed to convert value: validation failed: [FloatNegative] value isn't negative"},
 		},
 		// FloatNonNegative
 		{
@@ -1275,7 +1328,7 @@ func TestExecute(t *testing.T) {
 			opts: []ArgOpt{
 				FloatNonNegative(),
 			},
-			wantErr: "failed to process args: failed to convert value: validation failed: [FloatNonNegative] value isn't non-negative",
+			wantStderr: []string{"failed to process args: failed to convert value: validation failed: [FloatNonNegative] value isn't non-negative"},
 		},
 		{
 			name: "FloatNonNegative works when zero",
@@ -1283,6 +1336,7 @@ func TestExecute(t *testing.T) {
 			opts: []ArgOpt{
 				FloatNonNegative(),
 			},
+			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
 				"req": &Value{
 					valType:  FloatType,
@@ -1296,6 +1350,7 @@ func TestExecute(t *testing.T) {
 			opts: []ArgOpt{
 				FloatNonNegative(),
 			},
+			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
 				"req": &Value{
 					valType:  FloatType,
@@ -1311,7 +1366,7 @@ func TestExecute(t *testing.T) {
 
 			ex := test.ex
 			if ex == nil {
-				ex = func(args map[string]*Value, flags map[string]*Value) (*ExecutorResponse, error) {
+				ex = func(cos CommandOS, args, flags map[string]*Value) (*ExecutorResponse, bool) {
 					// Check length so we can consider empty to be the same as nil.
 					// That makes for cleaner test cases.
 					if len(args) > 0 {
@@ -1320,28 +1375,31 @@ func TestExecute(t *testing.T) {
 					if len(flags) > 0 {
 						gotExecuteFlags = flags
 					}
-					return test.exResp, test.exErr
+					return test.exResp, true
 				}
 			}
 
 			cmd := branchCommand(ex, &Completor{}, test.opts...)
 
-			got, err := Execute(cmd, test.args)
+			tcos := &TestCommandOS{}
 
-			if err != nil && test.wantErr == "" {
-				t.Fatalf("command.Execute(%v) returned an error (%v); want nil", test.args, err)
-			} else if err == nil && test.wantErr != "" {
-				t.Fatalf("command.Execute(%v) returned nil; want error with message %q", test.args, test.wantErr)
-			} else if err != nil && !strings.Contains(err.Error(), test.wantErr) {
-				t.Fatalf("command.Execute(%v) returned error (%v); want error with message %q", test.args, err, test.wantErr)
+			got, ok := Execute(tcos, cmd, test.args)
+			if ok != test.wantOK {
+				t.Fatalf("commands.Execute(%v) returned %v for ok; want %v", test.args, ok, test.wantOK)
 			}
 
 			if diff := cmp.Diff(test.want, got); diff != "" {
 				t.Errorf("command.Execute(%v) returned diff (-want, +got):\n%s", test.args, diff)
 			}
 
-			opt := cmp.AllowUnexported(Value{})
+			if diff := cmp.Diff(test.wantStdout, tcos.GetStdout()); diff != "" {
+				t.Errorf("command.Execute(%v) produced stdout diff (-want, +got):\n%s", test.args, diff)
+			}
+			if diff := cmp.Diff(test.wantStderr, tcos.GetStderr()); diff != "" {
+				t.Errorf("command.Execute(%v) produced stderr diff (-want, +got):\n%s", test.args, diff)
+			}
 
+			opt := cmp.AllowUnexported(Value{})
 			if diff := cmp.Diff(test.wantExecuteArgs, gotExecuteArgs, opt); diff != "" {
 				t.Errorf("command.Execute(%v) produced execute args diff (-want, +got):\n%s", test.args, diff)
 			}
@@ -2594,8 +2652,8 @@ func TestMiscellaneous(t *testing.T) {
 			},
 		}
 
-		if resp, err := NoopExecutor(args, flags); resp != nil && err != nil {
-			t.Errorf("Expected NoopExecutor to return (nil, nil); got (%v, %v)", resp, err)
+		if resp, ok := NoopExecutor(nil, args, flags); resp != nil && !ok {
+			t.Errorf("Expected NoopExecutor to return (nil, true); got (%v, %v)", resp, ok)
 		}
 	})
 
