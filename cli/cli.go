@@ -54,7 +54,7 @@ func Execute(cos commands.CommandOS, cli CLI, args []string) (*commands.Executor
 			return resp, false
 		}
 	}
-	return resp, false
+	return resp, true
 }
 
 func Autocomplete(cli CLI, args []string, cursorIdx int) []string {
