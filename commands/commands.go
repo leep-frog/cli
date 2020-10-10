@@ -92,30 +92,53 @@ type Command interface {
 
 // CommandOS provides OS-related objects to executors
 type CommandOS interface {
-	// Writes a line to stdout
+	// Writes a line to stdout.
 	Stdout(string, ...interface{})
-	// Writes a line to stderr
+	// Writes a line to stderr.
 	Stderr(string, ...interface{})
+	// Close informs the os that no more data will be written.
+	Close()
 }
 
 type commandOS struct {
-	stdout *log.Logger
-	stderr *log.Logger
+	stdoutChan chan string
+	stderrChan chan string
 }
 
 func (cos *commandOS) Stdout(s string, a ...interface{}) {
-	cos.stdout.Println(fmt.Sprintf(s, a...))
+	cos.stdoutChan <- fmt.Sprintf(s, a...)
 }
 
 func (cos *commandOS) Stderr(s string, a ...interface{}) {
-	cos.stderr.Println(fmt.Sprintf(s, a...))
+	cos.stderrChan <- fmt.Sprintf(s, a...)
+}
+
+func (cos *commandOS) Close() {
+	close(cos.stdoutChan)
+	close(cos.stderrChan)
 }
 
 // NewCommandOS returns an OS that points to stdout and stderr.
 func NewCommandOS() CommandOS {
+	stdoutChan := make(chan string)
+	stderrChan := make(chan string)
+
+	go func() {
+		stdout := log.New(os.Stdout, "", 0)
+		for s := range stdoutChan {
+			stdout.Println(s)
+		}
+	}()
+
+	go func() {
+		stderr := log.New(os.Stderr, "", 0)
+		for s := range stderrChan {
+			stderr.Println(s)
+		}
+	}()
 	return &commandOS{
-		stdout: log.New(os.Stdout, "", 0),
-		stderr: log.New(os.Stderr, "", 0),
+		stdoutChan: stdoutChan,
+		stderrChan: stderrChan,
 	}
 }
 
@@ -137,6 +160,8 @@ func (tcos *TestCommandOS) Stderr(s string, a ...interface{}) {
 	}
 	tcos.stderr = append(tcos.stderr, fmt.Sprintf(s, a...))
 }
+
+func (tcos *TestCommandOS) Close() {}
 
 func (tcos *TestCommandOS) GetStdout() []string {
 	return tcos.stdout
