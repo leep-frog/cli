@@ -7,6 +7,7 @@ import (
 	"os"
 	"sort"
 	"strings"
+	"sync"
 )
 
 func parseArgs(unparsedArgs []string) ([]string, *string) {
@@ -103,6 +104,7 @@ type CommandOS interface {
 type commandOS struct {
 	stdoutChan chan string
 	stderrChan chan string
+	wg         *sync.WaitGroup
 }
 
 func (cos *commandOS) Stdout(s string, a ...interface{}) {
@@ -116,18 +118,22 @@ func (cos *commandOS) Stderr(s string, a ...interface{}) {
 func (cos *commandOS) Close() {
 	close(cos.stdoutChan)
 	close(cos.stderrChan)
+	cos.wg.Wait()
 }
 
 // NewCommandOS returns an OS that points to stdout and stderr.
 func NewCommandOS() CommandOS {
 	stdoutChan := make(chan string)
 	stderrChan := make(chan string)
+	var wg sync.WaitGroup
 
+	wg.Add(2)
 	go func() {
 		stdout := log.New(os.Stdout, "", 0)
 		for s := range stdoutChan {
 			stdout.Println(s)
 		}
+		wg.Done()
 	}()
 
 	go func() {
@@ -135,10 +141,12 @@ func NewCommandOS() CommandOS {
 		for s := range stderrChan {
 			stderr.Println(s)
 		}
+		wg.Done()
 	}()
 	return &commandOS{
 		stdoutChan: stdoutChan,
 		stderrChan: stderrChan,
+		wg:         &wg,
 	}
 }
 
