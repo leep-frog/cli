@@ -1,4 +1,4 @@
-module github.com/leep-frog/cli
+module github.com/leep-frog/commands
 
 go 1.14
 
