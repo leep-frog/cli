@@ -291,7 +291,7 @@ func TestExecute(t *testing.T) {
 		},
 		{
 			name: "fails when CommandBranch defines executor fails",
-			ex: func(cos CommandOS, args map[string]*Value, flags map[string]*Value) (*ExecutorResponse, bool) {
+			ex: func(cos CommandOS, args map[string]*Value, flags map[string]*Value, _ *OptionInfo) (*ExecutorResponse, bool) {
 				cos.Stderr("bad news bears")
 				return nil, false
 			},
@@ -524,7 +524,7 @@ func TestExecute(t *testing.T) {
 		{
 			name: "fails when executor returns false",
 			args: []string{"intermediate", "first", "2nd", "bronze"},
-			ex: func(cos CommandOS, args, flags map[string]*Value) (*ExecutorResponse, bool) {
+			ex: func(cos CommandOS, args, flags map[string]*Value, _ *OptionInfo) (*ExecutorResponse, bool) {
 				cos.Stderr("this was a failure")
 				return nil, false
 			},
@@ -1366,7 +1366,8 @@ func TestExecute(t *testing.T) {
 
 			ex := test.ex
 			if ex == nil {
-				ex = func(cos CommandOS, args, flags map[string]*Value) (*ExecutorResponse, bool) {
+				// TODO: verify oi is correct
+				ex = func(cos CommandOS, args, flags map[string]*Value, _ *OptionInfo) (*ExecutorResponse, bool) {
 					// Check length so we can consider empty to be the same as nil.
 					// That makes for cleaner test cases.
 					if len(args) > 0 {
@@ -1383,7 +1384,7 @@ func TestExecute(t *testing.T) {
 
 			tcos := &TestCommandOS{}
 
-			got, ok := Execute(tcos, cmd, test.args)
+			got, ok := Execute(tcos, cmd, test.args, nil)
 			if ok != test.wantOK {
 				t.Fatalf("commands.Execute(%v) returned %v for ok; want %v", test.args, ok, test.wantOK)
 			}
@@ -2652,7 +2653,7 @@ func TestMiscellaneous(t *testing.T) {
 			},
 		}
 
-		if resp, ok := NoopExecutor(nil, args, flags); resp != nil && !ok {
+		if resp, ok := NoopExecutor(nil, args, flags, nil); resp != nil && !ok {
 			t.Errorf("Expected NoopExecutor to return (nil, true); got (%v, %v)", resp, ok)
 		}
 	})

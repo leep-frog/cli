@@ -107,7 +107,7 @@ func TestValueComands(t *testing.T) {
 				Args: []Arg{
 					test.argDef,
 				},
-				Executor: func(cos CommandOS, args, flags map[string]*Value) (*ExecutorResponse, bool) {
+				Executor: func(cos CommandOS, args, flags map[string]*Value, _ *OptionInfo) (*ExecutorResponse, bool) {
 					v := args[test.argDef.Name()]
 
 					// strings
@@ -139,7 +139,7 @@ func TestValueComands(t *testing.T) {
 			}
 
 			tcos := &TestCommandOS{}
-			got, ok := Execute(tcos, cmd, test.args)
+			got, ok := Execute(tcos, cmd, test.args, nil)
 
 			if ok != test.wantOK {
 				t.Fatalf("commands.Execute(%v) returned %v for ok; want %v", test.args, ok, test.wantOK)

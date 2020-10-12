@@ -92,10 +92,16 @@ type Option struct {
 	SetupCommand string
 }
 
+// OptionInfo is passed to CLIs and contains info about the command's Option.
+type OptionInfo struct {
+	// SetupOutputFile contains the output from Option.SetupCommand
+	SetupOutputFile string
+}
+
 // Command is an interface for a CLI that can be written in go.
 type Command interface {
 	Complete([]string) *Completion
-	Execute(CommandOS, []string) (*ExecutorResponse, bool)
+	Execute(CommandOS, []string, *OptionInfo) (*ExecutorResponse, bool)
 	Usage() []string
 }
 
@@ -194,10 +200,10 @@ type ExecutorResponse struct {
 }
 
 // Executor executes a commands with the given positional arguments and flags.
-type Executor func(cos CommandOS, args map[string]*Value, flags map[string]*Value) (*ExecutorResponse, bool)
+type Executor func(cos CommandOS, args map[string]*Value, flags map[string]*Value, oi *OptionInfo) (*ExecutorResponse, bool)
 
 // NoopExecutor is an Executor that does nothing.
-func NoopExecutor(_ CommandOS, _ map[string]*Value, _ map[string]*Value) (*ExecutorResponse, bool) {
+func NoopExecutor(_ CommandOS, _ map[string]*Value, _ map[string]*Value, _ *OptionInfo) (*ExecutorResponse, bool) {
 	return nil, true
 }
 
@@ -241,24 +247,24 @@ func (cb *CommandBranch) Usage() []string {
 }
 
 // Execute executes the corresponding subcommand.
-func (cb *CommandBranch) Execute(cos CommandOS, args []string) (*ExecutorResponse, bool) {
+func (cb *CommandBranch) Execute(cos CommandOS, args []string, oi *OptionInfo) (*ExecutorResponse, bool) {
 	if len(args) == 0 {
 		if cb.TerminusCommand == nil {
 			cos.Stderr("more args required")
 			return nil, false
 		}
-		return cb.TerminusCommand.Execute(cos, args)
+		return cb.TerminusCommand.Execute(cos, args, oi)
 	}
 
 	if sc, ok := cb.Subcommands[args[0]]; ok {
-		return sc.Execute(cos, args[1:])
+		return sc.Execute(cos, args[1:], oi)
 	}
 
 	if cb.TerminusCommand == nil {
 		cos.Stderr("unknown subcommand and no terminus command defined")
 		return nil, false
 	}
-	return cb.TerminusCommand.Execute(cos, args)
+	return cb.TerminusCommand.Execute(cos, args, oi)
 }
 
 // Complete returns autocomplete suggestions.
@@ -304,10 +310,10 @@ func (cb *CommandBranch) Complete(args []string) *Completion {
 
 // Execute executes the given unparsed command.
 // TODO: this should only return an executor response
-func Execute(cos CommandOS, c Command, unparsedArgs []string) (*ExecutorResponse, bool) {
+func Execute(cos CommandOS, c Command, unparsedArgs []string, oi *OptionInfo) (*ExecutorResponse, bool) {
 	// TODO: check for help flag and print usage.
 	args, _ := parseArgs(unparsedArgs)
-	return c.Execute(cos, args)
+	return c.Execute(cos, args, oi)
 }
 
 func filter(args, suggestions []string) []string {
@@ -382,7 +388,7 @@ func (tc *TerminusCommand) flagMap(args []string) map[string]Flag {
 }
 
 // Execute loads flags and args and then runs it's executor.
-func (tc *TerminusCommand) Execute(cos CommandOS, args []string) (*ExecutorResponse, bool) {
+func (tc *TerminusCommand) Execute(cos CommandOS, args []string, oi *OptionInfo) (*ExecutorResponse, bool) {
 	flagMap := tc.flagMap(args)
 
 	flagValues := map[string]*Value{}
@@ -454,7 +460,7 @@ func (tc *TerminusCommand) Execute(cos CommandOS, args []string) (*ExecutorRespo
 		return nil, false
 	}
 
-	return tc.Executor(cos, populatedArgs, flagValues)
+	return tc.Executor(cos, populatedArgs, flagValues, oi)
 }
 
 // Complete returns all possible autocomplete suggestions for the given list of arguments.
