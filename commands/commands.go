@@ -84,6 +84,14 @@ func parseArgs(unparsedArgs []string) ([]string, *string) {
 	return parsedArgs, delimiter
 }
 
+// Option is a way for CLIs to define additional configuration that isn't easy
+// or feasible exclusively in go.
+type Option struct {
+	// SetupCommand is a bash script that runs prior to the CLI. It's output
+	// is passed as arguments to the command.
+	SetupCommand string
+}
+
 // Command is an interface for a CLI that can be written in go.
 type Command interface {
 	Complete([]string) *Completion
