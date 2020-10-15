@@ -23,8 +23,6 @@ var (
 )
 
 // Value is the populated value.
-// TODO: change this to use interfaces for each type?
-// Might be difficult because return type has to be something
 type Value struct {
 	valType ValueType
 

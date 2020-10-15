@@ -47,7 +47,6 @@ type Fetcher interface {
 	Fetch(value *Value, args, flags map[string]*Value) *Completion
 }
 
-// TODO: include a rawValue argument (for string prefix filtering)
 func (c *Completor) Complete(rawValue string, value *Value, args, flags map[string]*Value) *Completion {
 	if c == nil || c.SuggestionFetcher == nil {
 		return nil
@@ -103,7 +102,6 @@ func (lf *ListFetcher) Fetch(_ *Value, _, _ map[string]*Value) *Completion {
 	return &Completion{Suggestions: lf.Options}
 }
 
-// TODO: this needs to complete the second half of the command as well
 type FileFetcher struct {
 	Regexp            *regexp.Regexp
 	Directory         string
@@ -111,7 +109,6 @@ type FileFetcher struct {
 	IgnoreDirectories bool
 }
 
-// TODO: should these be allowed to return errors?
 func (ff *FileFetcher) Fetch(value *Value, args, flags map[string]*Value) *Completion {
 	var lastArg string
 	if strPtr := value.String(); strPtr != nil {
@@ -201,5 +198,3 @@ func (ff *FileFetcher) Fetch(value *Value, args, flags map[string]*Value) *Compl
 	}
 	return c
 }
-
-// TODO type MultiFetcher struct { cs Fetchers }
