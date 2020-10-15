@@ -3,6 +3,7 @@ package color
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 )
 
@@ -93,6 +94,7 @@ func (f *Format) Attributes() []string {
 	if f.Color != "" {
 		r = append(r, string(f.Color))
 	}
+	sort.Strings(r)
 	return r
 }
 
