@@ -16,7 +16,6 @@ func TestUsage(t *testing.T) {
 		cmd  Command
 		want []string
 	}{
-		// Basic tests
 		{
 			name: "returns proper usage",
 			cmd:  branchCommand(NoopExecutor, &Completor{}),
@@ -1478,7 +1477,7 @@ func TestExecute(t *testing.T) {
 
 			got, ok := Execute(tcos, cmd, test.args, nil)
 			if ok != test.wantOK {
-				t.Fatalf("commands.Execute(%v) returned %v for ok; want %v", test.args, ok, test.wantOK)
+				t.Errorf("commands.Execute(%v) returned %v for ok; want %v", test.args, ok, test.wantOK)
 			}
 
 			if diff := cmp.Diff(test.want, got); diff != "" {

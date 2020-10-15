@@ -309,10 +309,11 @@ func (cb *CommandBranch) Complete(args []string) *Completion {
 }
 
 // Execute executes the given unparsed command.
-// TODO: this should only return an executor response
-func Execute(cos CommandOS, c Command, unparsedArgs []string, oi *OptionInfo) (*ExecutorResponse, bool) {
+func Execute(cos CommandOS, c Command, args []string, oi *OptionInfo) (*ExecutorResponse, bool) {
+	// We don't need to parse args here because we're not doing
+	// our own modification and interpretation of args like we do
+	// with autocomplete.
 	// TODO: check for help flag and print usage.
-	args, _ := parseArgs(unparsedArgs)
 	return c.Execute(cos, args, oi)
 }
 
