@@ -236,7 +236,6 @@ func branchCommand(executor Executor, completor *Completor, opts ...ArgOpt) Comm
 	}
 }
 
-
 func TestExecute(t *testing.T) {
 	for _, test := range []struct {
 		name             string
@@ -2675,12 +2674,12 @@ func TestAutocomplete(t *testing.T) {
 		{
 			name: "completes partial bool argument",
 			args: []string{"valueTypes", "bool", "t"},
-			want: []string{"f", "false", "t", "true"},
+			want: []string{"t", "true"},
 		},
 		{
 			name: "completes optional boolean argument",
 			args: []string{"valueTypes", "bool", "true", "f"},
-			want: []string{"f", "false", "t", "true"},
+			want: []string{"f", "false"},
 			// TODO: this doesn't test wantCompleteArgs, because completor is builtin.
 		},
 		{
@@ -2790,7 +2789,7 @@ func TestMiscellaneous(t *testing.T) {
 				stringList: []string{"o", "o"},
 			},
 		}
-		_ = c.Complete(v, as, fs)
+		_ = c.Complete("yo", v, as, fs)
 	})
 
 	t.Run("invalid value type throws an error", func(t *testing.T) {

@@ -17,11 +17,11 @@ func (gf *genericFlag) ShortName() rune {
 	return gf.shortName
 }
 
-func (gf *genericFlag) Complete(args, flags map[string]*Value) *Completion {
+func (gf *genericFlag) Complete(rawValue string, args, flags map[string]*Value) *Completion {
 	if gf.completor == nil {
 		return nil
 	}
-	return gf.completor.Complete(flags[gf.Name()], args, flags)
+	return gf.completor.Complete(rawValue, flags[gf.Name()], args, flags)
 }
 
 func (gf *genericFlag) Usage() []string {

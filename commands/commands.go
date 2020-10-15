@@ -13,7 +13,7 @@ import (
 var (
 	// Default is string list
 	quotationChars = map[rune]bool{
-		'"': true,
+		'"':  true,
 		'\'': true,
 	}
 )
@@ -208,7 +208,6 @@ func NoopExecutor(_ CommandOS, _ map[string]*Value, _ map[string]*Value, _ *Opti
 	return nil, true
 }
 
-// TODO: combine terminusCommand and commandBranch??
 // TerminusCommand is a command that processes dynamic arguments and flags.
 type TerminusCommand struct {
 	Args     []Arg
@@ -497,14 +496,18 @@ func (tc *TerminusCommand) Complete(args []string) *Completion {
 
 		value, fullyProcessed, _ := flag.ProcessArgs(args[(idx + 1):])
 
+		var argPrefix string
+		if idx < len(args)-1 {
+			argPrefix = args[idx+1]
+		}
 		flagValues[flag.Name()] = value
 		if fullyProcessed {
 			idx += value.Length() + 1 // + 1 for flag itself
 			if idx >= len(args) {
-				return flag.Complete(nil, flagValues)
+				return flag.Complete(argPrefix, nil, flagValues)
 			}
 		} else {
-			return flag.Complete(nil, flagValues)
+			return flag.Complete(argPrefix, nil, flagValues)
 		}
 	}
 
@@ -570,17 +573,14 @@ positional:
 		}
 	}
 
-	// TODO: ignore the last value?
-	return tc.Args[argIdx].Complete(populatedArgs, flagValues)
+	return tc.Args[argIdx].Complete(flaglessArgs[len(flaglessArgs)-1], populatedArgs, flagValues)
 }
-
-// TODO: value options
 
 // Arg is a positional argument used by a TerminusCommand.
 type Arg interface {
 	Name() string
 	ProcessArgs(args []string) (*Value, bool, error)
-	Complete(args, flags map[string]*Value) *Completion
+	Complete(rawValue string, args, flags map[string]*Value) *Completion
 	Usage() []string
 	Optional() bool
 }
@@ -590,6 +590,6 @@ type Flag interface {
 	Name() string
 	ShortName() rune
 	ProcessArgs(args []string) (*Value, bool, error)
-	Complete(args, flags map[string]*Value) *Completion
+	Complete(rawValue string, args, flags map[string]*Value) *Completion
 	Usage() []string
 }

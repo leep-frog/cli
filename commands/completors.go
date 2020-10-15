@@ -48,7 +48,7 @@ type Fetcher interface {
 }
 
 // TODO: include a rawValue argument (for string prefix filtering)
-func (c *Completor) Complete(value *Value, args, flags map[string]*Value) *Completion {
+func (c *Completor) Complete(rawValue string, value *Value, args, flags map[string]*Value) *Completion {
 	if c == nil || c.SuggestionFetcher == nil {
 		return nil
 	}
@@ -59,18 +59,11 @@ func (c *Completor) Complete(value *Value, args, flags map[string]*Value) *Compl
 	}
 	allOpts := completion.Suggestions
 
-	// Filter out prefixes (this should be optional based on Completor.FilterPrefix (or option?))
-	var lastArg string
-	if strPtr := value.String(); strPtr != nil {
-		lastArg = *strPtr
-	} else if slPtr := value.StringList(); slPtr != nil && len(*slPtr) > 0 {
-		lastArg = (*slPtr)[len(*slPtr)-1]
-	}
-
+	// Filter out prefixes.
 	if !completion.IgnoreFilter {
 		var filteredOpts []string
 		for _, o := range allOpts {
-			if strings.HasPrefix(o, lastArg) {
+			if strings.HasPrefix(o, rawValue) {
 				filteredOpts = append(filteredOpts, o)
 			}
 		}

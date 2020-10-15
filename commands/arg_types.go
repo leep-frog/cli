@@ -167,7 +167,7 @@ func (ap *argProcessor) Usage(name string) []string {
 type genericArgs struct {
 	name         string
 	argProcessor *argProcessor
-	completor *Completor
+	completor    *Completor
 }
 
 func (ga *genericArgs) Name() string {
@@ -178,11 +178,11 @@ func (ga *genericArgs) Optional() bool {
 	return ga.argProcessor.MinN == 0
 }
 
-func (ga *genericArgs) Complete(args, flags map[string]*Value) *Completion {
+func (ga *genericArgs) Complete(rawValue string, args, flags map[string]*Value) *Completion {
 	if ga.completor == nil {
 		return nil
 	}
-	return ga.completor.Complete(args[ga.Name()], args, flags)
+	return ga.completor.Complete(rawValue, args[ga.Name()], args, flags)
 }
 
 func (ga *genericArgs) ProcessArgs(args []string) (*Value, bool, error) {
@@ -192,11 +192,6 @@ func (ga *genericArgs) ProcessArgs(args []string) (*Value, bool, error) {
 func (ga *genericArgs) Usage() []string {
 	return ga.argProcessor.Usage(ga.Name())
 }
-
-// TODO: all of these "New..." functions should be changed to:
-// commands.String(name, default, description?, completor, opts...)
-// commands.Int,Float,___List,etc.
-// Options should include: min, optionalN, max, etc.
 
 func StringArg(name string, required bool, completor *Completor, opts ...ArgOpt) Arg {
 	if !required {
