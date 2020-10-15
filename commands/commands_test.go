@@ -28,7 +28,7 @@ func TestUsage(t *testing.T) {
 				"other", "\n",
 				"[", "CB-COMMAND", "CB-COMMAND", "]",
 				"\n",
-				"basic", "POS_1", "PLACE_2", "--american|-a", "--another", "FLAG_VALUE", "--state|-s", "FLAG_VALUE", "\n",
+				"basic", "VAL_1", "VARIABLE_2", "--american|-a", "--another", "FLAG_VALUE", "--state|-s", "FLAG_VALUE", "\n",
 				"basically", "ANYTHING", "ANYTHING", "ANYTHING", "\n",
 				"beginner", "\n", "dquo", "WHOSE", "WHOSE", "\n",
 				"ignore", "alpha", "\n", "ayo", "\n", "AIGHT", "\n",
@@ -90,8 +90,8 @@ func branchCommand(executor Executor, completor *Completor, opts ...ArgOpt) Comm
 				Executor: executor,
 				Args: []Arg{
 					// TODO: make these file names. Current values are more like BranchOmmands.
-					StringListArg("pos_1", 1, 0, completor, opts...),
-					StringListArg("place 2", 1, 0, completor, opts...),
+					StringListArg("val_1", 1, 0, completor, opts...),
+					StringListArg("variable 2", 1, 0, completor, opts...),
 				},
 				Flags: []Flag{
 					BoolFlag("american", 'a', opts...),
@@ -282,7 +282,7 @@ func TestExecute(t *testing.T) {
 		{
 			name:       "not enough positional arguments",
 			args:       []string{"basic", "--state", "maine"},
-			wantStderr: []string{`no argument provided for "pos_1"`},
+			wantStderr: []string{`no argument provided for "val_1"`},
 		},
 		{
 			name:       "no executor defined",
@@ -313,10 +313,10 @@ func TestExecute(t *testing.T) {
 			args:   []string{"basic", "un", "deux"},
 			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
-				"pos_1": &Value{
+				"val_1": &Value{
 					stringList: []string{"un"},
 				},
-				"place 2": &Value{
+				"variable 2": &Value{
 					stringList: []string{"deux"},
 				},
 			},
@@ -326,10 +326,10 @@ func TestExecute(t *testing.T) {
 			args:   []string{"basic", "--state", "jersey", "trois", "quatre"},
 			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
-				"pos_1": &Value{
+				"val_1": &Value{
 					stringList: []string{"trois"},
 				},
-				"place 2": &Value{
+				"variable 2": &Value{
 					stringList: []string{"quatre"},
 				},
 			},
@@ -344,10 +344,10 @@ func TestExecute(t *testing.T) {
 			args:   []string{"basic", "trois", "--state", "massachusetts", "quatre"},
 			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
-				"pos_1": &Value{
+				"val_1": &Value{
 					stringList: []string{"trois"},
 				},
-				"place 2": &Value{
+				"variable 2": &Value{
 					stringList: []string{"quatre"},
 				},
 			},
@@ -362,10 +362,10 @@ func TestExecute(t *testing.T) {
 			args:   []string{"basic", "trois", "quatre", "-s", "connecticut"},
 			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
-				"pos_1": &Value{
+				"val_1": &Value{
 					stringList: []string{"trois"},
 				},
-				"place 2": &Value{
+				"variable 2": &Value{
 					stringList: []string{"quatre"},
 				},
 			},
@@ -380,10 +380,10 @@ func TestExecute(t *testing.T) {
 			args:   []string{"basic", "trois", "--american", "quatre"},
 			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
-				"pos_1": &Value{
+				"val_1": &Value{
 					stringList: []string{"trois"},
 				},
-				"place 2": &Value{
+				"variable 2": &Value{
 					stringList: []string{"quatre"},
 				},
 			},
@@ -400,10 +400,10 @@ func TestExecute(t *testing.T) {
 			args:   []string{"basic", "-a", "trois", "quatre"},
 			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
-				"pos_1": &Value{
+				"val_1": &Value{
 					stringList: []string{"trois"},
 				},
-				"place 2": &Value{
+				"variable 2": &Value{
 					stringList: []string{"quatre"},
 				},
 			},
@@ -1615,7 +1615,7 @@ func TestAutocomplete(t *testing.T) {
 			want:      []string{"build", "test", "try", "trying"},
 			wantValue: &Value{stringList: []string{""}},
 			wantCompleteArgs: map[string]*Value{
-				"pos_1": &Value{
+				"val_1": &Value{
 					stringList: []string{""},
 				},
 			},
@@ -1627,7 +1627,7 @@ func TestAutocomplete(t *testing.T) {
 			want:      []string{"test", "try", "trying"},
 			wantValue: &Value{stringList: []string{"t"}},
 			wantCompleteArgs: map[string]*Value{
-				"pos_1": &Value{
+				"val_1": &Value{
 					stringList: []string{"t"},
 				},
 			},
@@ -1643,10 +1643,10 @@ func TestAutocomplete(t *testing.T) {
 			want:      []string{"one", "other"},
 			wantValue: &Value{stringList: []string{"o"}},
 			wantCompleteArgs: map[string]*Value{
-				"pos_1": &Value{
+				"val_1": &Value{
 					stringList: []string{"build"},
 				},
-				"place 2": &Value{
+				"variable 2": &Value{
 					stringList: []string{"o"},
 				},
 			},
