@@ -2196,7 +2196,6 @@ func TestAutocomplete(t *testing.T) {
 			want:      []string{"edi", "erm"},
 			wantValue: &Value{stringList: []string{"ate", "e"}},
 			wantCompleteArgs: map[string]*Value{
-				// TODO: should complete args include the last incomplete variable?
 				"syllable": &Value{
 					stringList: []string{"ate", "e"},
 				},

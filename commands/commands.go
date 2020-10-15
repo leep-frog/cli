@@ -10,11 +10,25 @@ import (
 	"sync"
 )
 
-func parseArgs(unparsedArgs []string) ([]string, *string) {
+var (
+	// Default is string list
+	quotationChars = map[rune]bool{
+		'"': true,
+		'\'': true,
+	}
+)
+
+func parseArgs(unparsedArgs []string) ([]string, *rune) {
+	if len(unparsedArgs) == 0 {
+		return nil, nil
+	}
+
 	// Ignore if the last charater is just a quote
-	var delimiterOverride string
-	if len(unparsedArgs) > 0 && (unparsedArgs[len(unparsedArgs)-1] == "\"" || unparsedArgs[len(unparsedArgs)-1] == "'") {
-		delimiterOverride = unparsedArgs[len(unparsedArgs)-1]
+	var delimiterOverride *rune
+	lastArg := unparsedArgs[len(unparsedArgs)-1]
+	if len(lastArg) == 1 && quotationChars[rune(lastArg[0])] {
+		r := rune(lastArg[0])
+		delimiterOverride = &r
 		unparsedArgs[len(unparsedArgs)-1] = ""
 	}
 
@@ -28,29 +42,20 @@ func parseArgs(unparsedArgs []string) ([]string, *string) {
 	}
 	currentString := make([]rune, 0, totalLen)
 
-	// TODO: this should be an enum (iota)
-	inSingle, inDouble := false, false
+	var currentQuote *rune
 	// Note: "one"two is equivalent to (onetwo) as opposed to (one two).
 	for i, arg := range unparsedArgs {
 		for j := 0; j < len(arg); j++ {
 			char := rune(arg[j])
 
-			if inSingle {
-				if char == '\'' {
-					inSingle = false
+			if currentQuote != nil {
+				if char == *currentQuote {
+					currentQuote = nil
 				} else {
 					currentString = append(currentString, char)
 				}
-			} else if inDouble {
-				if char == '"' {
-					inDouble = false
-				} else {
-					currentString = append(currentString, char)
-				}
-			} else if char == '\'' {
-				inSingle = true
-			} else if char == '"' {
-				inDouble = true
+			} else if quotationChars[char] {
+				currentQuote = &char
 			} else if char == '\\' && j < len(arg)-1 && rune(arg[j+1]) == ' ' {
 				currentString = append(currentString, ' ')
 				j++
@@ -59,7 +64,7 @@ func parseArgs(unparsedArgs []string) ([]string, *string) {
 			}
 		}
 
-		if (inSingle || inDouble) && i != len(unparsedArgs)-1 {
+		if currentQuote != nil && i != len(unparsedArgs)-1 {
 			currentString = append(currentString, ' ')
 		} else if len(arg) > 0 && rune(arg[len(arg)-1]) == '\\' {
 			// If last character of argument is a backslash, then it's just a space
@@ -70,15 +75,11 @@ func parseArgs(unparsedArgs []string) ([]string, *string) {
 		}
 	}
 
-	var delimiter *string
-	if delimiterOverride != "" {
-		delimiter = &delimiterOverride
-	} else if inDouble {
-		dq := `"`
-		delimiter = &dq
-	} else if inSingle {
-		sq := "'"
-		delimiter = &sq
+	var delimiter *rune
+	if delimiterOverride != nil {
+		delimiter = delimiterOverride
+	} else if currentQuote != nil {
+		delimiter = currentQuote
 	}
 
 	return parsedArgs, delimiter
@@ -353,7 +354,7 @@ func Autocomplete(c Command, unparsedArgs []string, cursorIdx int) []string {
 				// TODO: default delimiter behavior should be defined by command?
 				predictions[i] = strings.ReplaceAll(prediction, " ", "\\ ")
 			} else {
-				predictions[i] = fmt.Sprintf("%s%s%s", *delimiter, prediction, *delimiter)
+				predictions[i] = fmt.Sprintf("%s%s%s", string(*delimiter), prediction, string(*delimiter))
 			}
 		}
 	}
