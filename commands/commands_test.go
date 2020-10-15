@@ -78,8 +78,7 @@ func branchCommand(executor Executor, completor *Completor, opts ...ArgOpt) Comm
 					"liszt": &TerminusCommand{
 						Executor: executor,
 						Args: []Arg{
-							// TODO: make -1 a constant for unbounded list.
-							StringListArg("list-arg", 1, -1, completor, opts...),
+							StringListArg("list-arg", 1, UnboundedList, completor, opts...),
 						},
 						Flags: []Flag{
 							StringListFlag("inside", 'i', 2, 0, completor, opts...),

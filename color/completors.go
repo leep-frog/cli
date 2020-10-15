@@ -13,8 +13,6 @@ func (f *fetcher) Fetch(value *commands.Value, args, flags map[string]*commands.
 	}
 }
 
-func (f *fetcher) PrefixFilter() bool { return true }
-
 func Completor() *commands.Completor {
 	return &commands.Completor{
 		Distinct:          true,
@@ -24,7 +22,7 @@ func Completor() *commands.Completor {
 
 var (
 	ArgName = "format"
-	Arg     = commands.StringListArg(ArgName, 1, -1, Completor())
+	Arg     = commands.StringListArg(ArgName, 1, commands.UnboundedList, Completor())
 )
 
 func ApplyCodes(f *Format, args map[string]*commands.Value) (*Format, bool) {

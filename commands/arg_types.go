@@ -7,6 +7,10 @@ import (
 	"strings"
 )
 
+const (
+	UnboundedList = -1
+)
+
 type ArgOpt interface {
 	ValueType() ValueType
 	Validate(*Value) error
@@ -163,8 +167,6 @@ func (ap *argProcessor) Usage(name string) []string {
 type genericArgs struct {
 	name         string
 	argProcessor *argProcessor
-	// TODO: change this to "Completor"
-	//options []string
 	completor *Completor
 }
 
