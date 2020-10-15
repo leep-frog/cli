@@ -94,7 +94,6 @@ func (f *Format) Attributes() []string {
 	if f.Color != "" {
 		r = append(r, string(f.Color))
 	}
-	sort.Strings(r)
 	return r
 }
 
@@ -105,6 +104,7 @@ func Attributes() []string {
 	for c, _ := range colorMap {
 		r = append(r, string(c))
 	}
+	sort.Strings(r)
 	return r
 }
 
