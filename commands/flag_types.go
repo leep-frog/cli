@@ -39,16 +39,6 @@ func (gf *genericFlag) ProcessArgs(args []string) (*Value, bool, error) {
 	return gf.argProcessor.ProcessArgs(args)
 }
 
-// TODO: this
-// NewBooleanFlag returns a boolean flag
-func NewBooleanFlag(name string, shortName rune, default_ bool) Flag {
-	return &genericFlag{
-		name:         name,
-		shortName:    shortName,
-		argProcessor: &argProcessor{},
-	}
-}
-
 func StringFlag(name string, shortName rune, completor *Completor, opts ...ArgOpt) Flag {
 	return listFlag(name, shortName, StringType, 1, 0, completor, opts...)
 }
@@ -71,6 +61,10 @@ func FloatFlag(name string, shortName rune, completor *Completor, opts ...ArgOpt
 
 func FloatListFlag(name string, shortName rune, minN, optionalN int, completor *Completor, opts ...ArgOpt) Flag {
 	return listFlag(name, shortName, FloatListType, minN, optionalN, completor, opts...)
+}
+
+func BoolFlag(name string, shortName rune, opts ...ArgOpt) Flag {
+	return listFlag(name, shortName, BoolType, 0, 0, nil, opts...)
 }
 
 func listFlag(name string, shortName rune, vt ValueType, minN, optionalN int, completor *Completor, opts ...ArgOpt) Flag {

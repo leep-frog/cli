@@ -464,6 +464,7 @@ func (tc *TerminusCommand) Execute(cos CommandOS, args []string, oi *OptionInfo)
 }
 
 // Complete returns all possible autocomplete suggestions for the given list of arguments.
+// TODO: this should return an error so it's easier to debug and test
 func (tc *TerminusCommand) Complete(args []string) *Completion {
 	// TODO: combine common logic between this and Execute
 	flagMap := tc.flagMap(args)

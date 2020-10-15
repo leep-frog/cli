@@ -24,12 +24,30 @@ type Completion struct {
 	DontComplete bool
 }
 
+func BoolCompletor() *Completor {
+	return &Completor{
+		SuggestionFetcher: &boolFetcher{},
+	}
+}
+
+type boolFetcher struct{}
+
+func (*boolFetcher) Fetch(value *Value, args, flags map[string]*Value) *Completion {
+	var keys []string
+	for k := range boolStringMap {
+		keys = append(keys, k)
+	}
+	return &Completion{
+		Suggestions: keys,
+	}
+}
+
 type Fetcher interface {
 	// Fetch fetches all other options given the command arguments and flags.
 	Fetch(value *Value, args, flags map[string]*Value) *Completion
 }
 
-// TODO: values arg should be a *Value
+// TODO: include a rawValue argument (for string prefix filtering)
 func (c *Completor) Complete(value *Value, args, flags map[string]*Value) *Completion {
 	if c == nil || c.SuggestionFetcher == nil {
 		return nil
@@ -49,7 +67,6 @@ func (c *Completor) Complete(value *Value, args, flags map[string]*Value) *Compl
 		lastArg = (*slPtr)[len(*slPtr)-1]
 	}
 
-	// TODO: move prefix filter to a field in Completion.IgnorePrefix
 	if !completion.IgnoreFilter {
 		var filteredOpts []string
 		for _, o := range allOpts {

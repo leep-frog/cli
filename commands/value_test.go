@@ -30,6 +30,10 @@ func floatListP(fl []float64) *[]float64 {
 	return &fl
 }
 
+func boolP(b bool) *bool {
+	return &b
+}
+
 func TestValueComands(t *testing.T) {
 	for _, test := range []struct {
 		name           string
@@ -42,6 +46,7 @@ func TestValueComands(t *testing.T) {
 		wantIntList    *[]int
 		wantFloat      *float64
 		wantFloatList  *[]float64
+		wantBool       *bool
 		wantOK         bool
 		want           *ExecutorResponse
 		wantStdout     []string
@@ -101,6 +106,15 @@ func TestValueComands(t *testing.T) {
 			want:          &ExecutorResponse{},
 			wantOK:        true,
 		},
+		{
+			name:     "bool is populated",
+			vt:       BoolType,
+			argDef:   BoolArg("argName", true),
+			args:     []string{"true"},
+			wantBool: boolP(true),
+			want:     &ExecutorResponse{},
+			wantOK:   true,
+		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			cmd := &TerminusCommand{
@@ -132,6 +146,11 @@ func TestValueComands(t *testing.T) {
 					}
 					if diff := cmp.Diff(test.wantFloatList, v.FloatList()); diff != "" {
 						t.Errorf("FloatList() produced diff (-want, +got):\n%s", diff)
+					}
+
+					// bool
+					if diff := cmp.Diff(test.wantBool, v.Bool()); diff != "" {
+						t.Errorf("Bool() produced diff (-want, +got):\n%s", diff)
 					}
 
 					return &ExecutorResponse{}, true

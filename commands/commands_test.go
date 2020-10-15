@@ -38,6 +38,7 @@ func TestUsage(t *testing.T) {
 				"sometimes", "OPT_GROUP", "[", "OPT_GROUP", "OPT_GROUP", "OPT_GROUP", "]", "\n",
 				"squo", "WHOSE", "WHOSE", "\n",
 				"valueTypes",
+				"bool", "REQ", "[", "OPT", "]", "--vFlag|-v", "\n",
 				"float", "REQ", "[", "OPT", "]", "--vFlag|-v", "FLAG_VALUE", "\n",
 				"floatList", "REQ", "REQ", "[", "REQ", "]", "--vFlag|-v", "FLAG_VALUE", "FLAG_VALUE", "[", "FLAG_VALUE", "]", "\n",
 				"int", "REQ", "[", "OPT", "]", "--vFlag|-v", "FLAG_VALUE", "\n",
@@ -94,7 +95,7 @@ func branchCommand(executor Executor, completor *Completor, opts ...ArgOpt) Comm
 					StringListArg("place 2", 1, 0, completor, opts...),
 				},
 				Flags: []Flag{
-					NewBooleanFlag("american", 'a', false),
+					BoolFlag("american", 'a', opts...),
 					StringListFlag("another", 0, 1, 0, completor, opts...),
 					StringListFlag("state", 's', 1, 0, completor, opts...),
 				},
@@ -112,7 +113,7 @@ func branchCommand(executor Executor, completor *Completor, opts ...ArgOpt) Comm
 					StringListArg("syllable", 3, 0, completor, opts...),
 				},
 				Flags: []Flag{
-					NewBooleanFlag("american", 'a', false),
+					BoolFlag("american", 'a', opts...),
 					StringListFlag("another", 0, 1, 0, completor, opts...),
 					StringListFlag("state", 's', 1, 0, completor, opts...),
 				},
@@ -220,6 +221,16 @@ func branchCommand(executor Executor, completor *Completor, opts ...ArgOpt) Comm
 						},
 						Flags: []Flag{
 							FloatListFlag("vFlag", 'v', 2, 1, completor, opts...),
+						},
+					},
+					"bool": &TerminusCommand{
+						Executor: executor,
+						Args: []Arg{
+							BoolArg("req", true, opts...),
+							BoolArg("opt", false, opts...),
+						},
+						Flags: []Flag{
+							BoolFlag("vFlag", 'v', opts...),
 						},
 					},
 				},
@@ -379,7 +390,9 @@ func TestExecute(t *testing.T) {
 			},
 			wantExecuteFlags: map[string]*Value{
 				"american": &Value{
-					stringList: []string{},
+					valType:  BoolType,
+					boolVal:  true,
+					boolFlag: true,
 				},
 			},
 		},
@@ -397,7 +410,9 @@ func TestExecute(t *testing.T) {
 			},
 			wantExecuteFlags: map[string]*Value{
 				"american": &Value{
-					stringList: []string{},
+					valType:  BoolType,
+					boolVal:  true,
+					boolFlag: true,
 				},
 			},
 		},
@@ -726,6 +741,86 @@ func TestExecute(t *testing.T) {
 			name:       "float list flag requires float values",
 			args:       []string{"valueTypes", "floatList", "-v", "twelve"},
 			wantStderr: []string{`failed to process flags: failed to convert value: float required for FloatList argument type: strconv.ParseFloat: parsing "twelve": invalid syntax`},
+		},
+		// bool argument type
+		{
+			name:   "handles bool argument",
+			args:   []string{"valueTypes", "bool", "true"},
+			wantOK: true,
+			wantExecuteArgs: map[string]*Value{
+				"req": &Value{
+					valType: BoolType,
+					boolVal: true,
+				},
+			},
+		},
+		{
+			name:   "handles optional bool argument",
+			args:   []string{"valueTypes", "bool", "false", "true"},
+			wantOK: true,
+			wantExecuteArgs: map[string]*Value{
+				"req": &Value{
+					valType: BoolType,
+				},
+				"opt": &Value{
+					valType: BoolType,
+					boolVal: true,
+				},
+			},
+		},
+		{
+			name:   "allows shorthand bool argument",
+			args:   []string{"valueTypes", "bool", "t", "f"},
+			wantOK: true,
+			wantExecuteArgs: map[string]*Value{
+				"req": &Value{
+					valType: BoolType,
+					boolVal: true,
+				},
+				"opt": &Value{
+					valType: BoolType,
+				},
+			},
+		},
+		{
+			name:       "bool argument requires bool value",
+			args:       []string{"valueTypes", "bool", "maybe"},
+			wantStderr: []string{`failed to process args: failed to convert value: bool value must be one of [f false t true]`},
+		},
+		{
+			name:   "bool flag works",
+			args:   []string{"valueTypes", "bool", "--vFlag", "false"},
+			wantOK: true,
+			wantExecuteArgs: map[string]*Value{
+				"req": &Value{
+					valType: BoolType,
+				},
+			},
+			wantExecuteFlags: map[string]*Value{
+				"vFlag": &Value{
+					valType:  BoolType,
+					boolVal:  true,
+					boolFlag: true,
+				},
+			},
+		},
+		{
+			name:   "bool shorthand flag works",
+			args:   []string{"valueTypes", "bool", "-v", "true"},
+			wantOK: true,
+			wantExecuteArgs: map[string]*Value{
+				"req": &Value{
+					valType: BoolType,
+					boolVal: true,
+				},
+			},
+			wantExecuteFlags: map[string]*Value{
+				"vFlag": &Value{
+					valType:  BoolType,
+					boolVal:  true,
+					boolFlag: true,
+				},
+			},
 		},
 		// ArgOpt tests
 		{
@@ -2073,7 +2168,9 @@ func TestAutocomplete(t *testing.T) {
 			},
 			wantCompleteFlags: map[string]*Value{
 				"american": &Value{
-					stringList: []string{},
+					valType:  BoolType,
+					boolVal:  true,
+					boolFlag: true,
 				},
 			},
 		},
@@ -2090,7 +2187,9 @@ func TestAutocomplete(t *testing.T) {
 			},
 			wantCompleteFlags: map[string]*Value{
 				"american": &Value{
-					stringList: []string{},
+					valType:  BoolType,
+					boolVal:  true,
+					boolFlag: true,
 				},
 			},
 		},
@@ -2173,7 +2272,9 @@ func TestAutocomplete(t *testing.T) {
 			wantValue: &Value{stringList: []string{""}},
 			wantCompleteFlags: map[string]*Value{
 				"american": &Value{
-					stringList: []string{},
+					valType:  BoolType,
+					boolVal:  true,
+					boolFlag: true,
 				},
 				"another": &Value{
 					stringList: []string{"a"},
@@ -2191,7 +2292,9 @@ func TestAutocomplete(t *testing.T) {
 			wantValue: &Value{stringList: []string{"wash"}},
 			wantCompleteFlags: map[string]*Value{
 				"american": &Value{
-					stringList: []string{},
+					valType:  BoolType,
+					boolVal:  true,
+					boolFlag: true,
 				},
 				"another": &Value{
 					stringList: []string{"a"},
@@ -2552,7 +2655,6 @@ func TestAutocomplete(t *testing.T) {
 			},
 		},
 		{
-			// TODO: test distinct (fetchResp return list of values instead?)
 			name:      "completes floatList when previous argument is invalid",
 			args:      []string{"valueTypes", "floatList", "twelve", "6.7", ""},
 			fetchResp: []string{"6.7", "89"},
@@ -2568,6 +2670,28 @@ func TestAutocomplete(t *testing.T) {
 					floatList: []float64{0, 6.7, 0},
 				},
 			},
+		},
+		// bool argument type
+		{
+			name: "completes bool argument",
+			args: []string{"valueTypes", "bool", ""},
+			want: []string{"f", "false", "t", "true"},
+		},
+		{
+			name: "completes partial bool argument",
+			args: []string{"valueTypes", "bool", "t"},
+			want: []string{"f", "false", "t", "true"},
+		},
+		{
+			name: "completes optional boolean argument",
+			args: []string{"valueTypes", "bool", "true", "f"},
+			want: []string{"f", "false", "t", "true"},
+			// TODO: this doesn't test wantCompleteArgs, because completor is builtin.
+		},
+		{
+			name: "completes when previous boolean was bad format",
+			args: []string{"valueTypes", "bool", "maybe", ""},
+			want: []string{"f", "false", "t", "true"},
 		},
 		/* Useful comment for commenting out tests */
 	} {
@@ -2655,23 +2779,6 @@ func TestMiscellaneous(t *testing.T) {
 
 		if resp, ok := NoopExecutor(nil, args, flags, nil); resp != nil && !ok {
 			t.Errorf("Expected NoopExecutor to return (nil, true); got (%v, %v)", resp, ok)
-		}
-	})
-
-	t.Run("boolean flag has no options", func(t *testing.T) {
-		bf := NewBooleanFlag("truther", 't', true)
-		as := map[string]*Value{
-			"a": &Value{
-				stringList: []string{"b"},
-			},
-		}
-		fs := map[string]*Value{
-			"c": &Value{
-				stringList: []string{"d", "e"},
-			},
-		}
-		if opts := bf.Complete(as, fs); opts != nil {
-			t.Errorf("Expected boolean flag options to be nil; got %v", opts)
 		}
 	})
 

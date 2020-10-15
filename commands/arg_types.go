@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -65,6 +66,22 @@ func (ap *argProcessor) Value(rawValue []string) (*Value, error) {
 			fs = append(fs, f)
 		}
 		v.floatList = fs
+	case BoolType:
+		if ap.MinN == 0 && ap.OptionalN == 0 { // flag value, true by presence
+			v.boolVal = true
+			v.boolFlag = true
+		} else { // arg value
+			var ok bool
+			v.boolVal, ok = boolStringMap[rawValue[0]]
+			if !ok {
+				var keys []string
+				for k := range boolStringMap {
+					keys = append(keys, k)
+				}
+				sort.Strings(keys)
+				err = fmt.Errorf("bool value must be one of %v", keys)
+			}
+		}
 	default:
 		return nil, fmt.Errorf("invalid value type: %v", ap.ValueType)
 	}
@@ -210,6 +227,14 @@ func FloatArg(name string, required bool, completor *Completor, opts ...ArgOpt) 
 
 func FloatListArg(name string, minN, optionalN int, completor *Completor, opts ...ArgOpt) Arg {
 	return listArg(name, FloatListType, minN, optionalN, completor, opts...)
+}
+
+func BoolArg(name string, required bool, opts ...ArgOpt) Arg {
+	bc := BoolCompletor()
+	if required {
+		return listArg(name, BoolType, 1, 0, bc, opts...)
+	}
+	return listArg(name, BoolType, 0, 1, bc, opts...)
 }
 
 func listArg(name string, vt ValueType, minN, optionalN int, completor *Completor, opts ...ArgOpt) Arg {

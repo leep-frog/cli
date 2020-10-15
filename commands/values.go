@@ -10,6 +10,16 @@ const (
 	IntListType
 	FloatType
 	FloatListType
+	BoolType
+)
+
+var (
+	boolStringMap = map[string]bool{
+		"true":  true,
+		"t":     true,
+		"false": false,
+		"f":     false,
+	}
 )
 
 // Value is the populated value.
@@ -25,6 +35,8 @@ type Value struct {
 	intList    []int
 	floatVal   float64
 	floatList  []float64
+	boolVal    bool
+	boolFlag   bool // whether or not the boolean is a flag
 }
 
 func (v *Value) Length() int {
@@ -35,7 +47,12 @@ func (v *Value) Length() int {
 		return len(v.intList)
 	case FloatListType:
 		return len(v.floatList)
+	case BoolType:
+		if v.boolFlag {
+			return 0
+		}
 	}
+	// Boolean type should be 0 for flag value and 1 for arg value?
 	return 1
 }
 
@@ -79,4 +96,11 @@ func (v *Value) FloatList() *[]float64 {
 		return nil
 	}
 	return &v.floatList
+}
+
+func (v *Value) Bool() *bool {
+	if v == nil || v.valType != BoolType {
+		return nil
+	}
+	return &v.boolVal
 }
