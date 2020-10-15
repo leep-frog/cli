@@ -184,9 +184,10 @@ func (ff *FileFetcher) Fetch(value *Value, args, flags map[string]*Value) *Compl
 				rn := rune(s[nextLetterPos])
 				nextLetter = &rn
 			} else if rune(s[nextLetterPos]) != *nextLetter {
-				// If two options differ in next letter, then
-				// no extra letters can be filled.
-				c.DontComplete = true
+				// If two options differ in next letter, then no extra letters can be
+				// filled. However, this is only a problem if we are completing an
+				// argument for a sub-directory.
+				c.DontComplete = len(laDir) != 0
 				return c
 			}
 		}

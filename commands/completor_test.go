@@ -115,7 +115,6 @@ func TestFetchers(t *testing.T) {
 				"testing/",
 				"value_test.go",
 				"values.go",
-				" ",
 			},
 		},
 		{
@@ -159,7 +158,6 @@ func TestFetchers(t *testing.T) {
 				"one.txt",
 				"three.txt",
 				"two.txt",
-				" ",
 			},
 		},
 		{
@@ -172,7 +170,6 @@ func TestFetchers(t *testing.T) {
 				"fourth.py",
 				"second.py",
 				"third.go",
-				" ",
 			},
 		},
 		{
@@ -184,7 +181,6 @@ func TestFetchers(t *testing.T) {
 			want: []string{
 				"fourth.py",
 				"second.py",
-				" ",
 			},
 		},
 		{
@@ -196,7 +192,6 @@ func TestFetchers(t *testing.T) {
 			want: []string{
 				"that/",
 				"this.txt",
-				" ",
 			},
 		},
 		{
@@ -222,7 +217,6 @@ func TestFetchers(t *testing.T) {
 				"childD/",
 				"subA/",
 				"subB/",
-				" ",
 			},
 		},
 		{
@@ -303,7 +297,6 @@ func TestFetchers(t *testing.T) {
 			want: []string{
 				"first.txt",
 				"fourth.py",
-				" ",
 			},
 		},
 		{

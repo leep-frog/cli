@@ -64,7 +64,7 @@ func (f *Format) AddAttribute(s string) error {
 	}
 	c := Color(s)
 	if !c.Valid() {
-		return fmt.Errorf("invalid attribute! %s", s)
+		return fmt.Errorf("invalid attribute: %s", s)
 	}
 	f.Color = c
 	return nil

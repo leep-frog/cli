@@ -25,6 +25,7 @@ var (
 	Arg     = commands.StringListArg(ArgName, 1, commands.UnboundedList, Completor())
 )
 
+// TODO: have this accept commandOS and write to stderr with any issues
 func ApplyCodes(f *Format, args map[string]*commands.Value) (*Format, bool) {
 	if f == nil {
 		f = &Format{}
