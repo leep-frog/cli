@@ -89,7 +89,6 @@ func branchCommand(executor Executor, completor *Completor, opts ...ArgOpt) Comm
 			"basic": &TerminusCommand{
 				Executor: executor,
 				Args: []Arg{
-					// TODO: make these file names. Current values are more like BranchOmmands.
 					StringListArg("val_1", 1, 0, completor, opts...),
 					StringListArg("variable 2", 1, 0, completor, opts...),
 				},
@@ -238,9 +237,8 @@ func branchCommand(executor Executor, completor *Completor, opts ...ArgOpt) Comm
 	}
 }
 
-// TODO: combine execute and autocomplete tests?
-func TestExecute(t *testing.T) {
 
+func TestExecute(t *testing.T) {
 	for _, test := range []struct {
 		name             string
 		args             []string
