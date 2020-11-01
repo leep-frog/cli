@@ -346,7 +346,11 @@ func Autocomplete(c Command, unparsedArgs []string, cursorIdx int) []string {
 	}
 	predictions := completion.Suggestions
 
-	sort.Strings(predictions)
+	if completion.CaseInsenstiveSort {
+		sort.Slice(predictions, func(i, j int) bool { return strings.ToLower(predictions[i]) < strings.ToLower(predictions[j]) })
+	} else {
+		sort.Strings(predictions)
+	}
 	for i, prediction := range predictions {
 		if strings.Contains(prediction, " ") {
 			if delimiter == nil {

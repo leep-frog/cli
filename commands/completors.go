@@ -19,9 +19,10 @@ type Completor struct {
 }
 
 type Completion struct {
-	Suggestions  []string
-	IgnoreFilter bool
-	DontComplete bool
+	Suggestions        []string
+	IgnoreFilter       bool
+	DontComplete       bool
+	CaseInsenstiveSort bool
 }
 
 func BoolCompletor() *Completor {
@@ -139,7 +140,7 @@ func (ff *FileFetcher) Fetch(value *Value, args, flags map[string]*Value) *Compl
 			continue
 		}
 
-		if !strings.HasPrefix(f.Name(), laFile) {
+		if !strings.HasPrefix(strings.ToLower(f.Name()), strings.ToLower(laFile)) {
 			continue
 		}
 
@@ -156,8 +157,9 @@ func (ff *FileFetcher) Fetch(value *Value, args, flags map[string]*Value) *Compl
 	}
 
 	c := &Completion{
-		Suggestions:  suggestions,
-		IgnoreFilter: true,
+		Suggestions:        suggestions,
+		IgnoreFilter:       true,
+		CaseInsenstiveSort: true,
 	}
 
 	// If only 1 suggestion matching, then we want it to autocomplete the whole thing.
