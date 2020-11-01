@@ -131,6 +131,7 @@ func (ff *FileFetcher) Fetch(value *Value, args, flags map[string]*Value) *Compl
 
 	onlyDir := true
 	suggestions := make([]string, 0, len(files))
+	mismatchedCasePrefix := false
 	for _, f := range files {
 		if (f.Mode().IsDir() && ff.IgnoreDirectories) || (f.Mode().IsRegular() && ff.IgnoreFiles) {
 			continue
@@ -142,6 +143,10 @@ func (ff *FileFetcher) Fetch(value *Value, args, flags map[string]*Value) *Compl
 
 		if !strings.HasPrefix(strings.ToLower(f.Name()), strings.ToLower(laFile)) {
 			continue
+		}
+
+		if !mismatchedCasePrefix && !strings.HasPrefix(f.Name(), laFile) {
+			mismatchedCasePrefix = true
 		}
 
 		if f.Mode().IsDir() {
@@ -188,8 +193,8 @@ func (ff *FileFetcher) Fetch(value *Value, args, flags map[string]*Value) *Compl
 			} else if rune(s[nextLetterPos]) != *nextLetter {
 				// If two options differ in next letter, then no extra letters can be
 				// filled. However, this is only a problem if we are completing an
-				// argument for a sub-directory.
-				c.DontComplete = len(laDir) != 0
+				// argument for a sub-directory or if the cases are different.
+				c.DontComplete = len(laDir) != 0 || mismatchedCasePrefix
 				return c
 			}
 		}

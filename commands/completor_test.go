@@ -373,6 +373,31 @@ func TestFetchers(t *testing.T) {
 			},
 		},
 		{
+			name:          "case insensitive gets letters autofilled",
+			f:             &FileFetcher{},
+			commandBranch: true,
+			args:          []string{"testing/dI"},
+			want: []string{
+				"testing/dir1/",
+				"testing/dir2/",
+				"testing/dir3/",
+				"testing/dir4/",
+			},
+		},
+		{
+			name:          "case insensitive recommends all without complete",
+			f:             &FileFetcher{},
+			commandBranch: true,
+			args:          []string{"testing/DiR"},
+			want: []string{
+				"dir1/",
+				"dir2/",
+				"dir3/",
+				"dir4/",
+				" ",
+			},
+		},
+		{
 			name:          "file fetcher ignores case",
 			f:             &FileFetcher{},
 			commandBranch: true,
