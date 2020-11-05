@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"unicode"
 )
 
 var (
@@ -181,28 +182,51 @@ func (ff *FileFetcher) Fetch(value *Value, args, flags map[string]*Value) *Compl
 		return c
 	}
 
-	// We check if all suggestions match laFile, because then we can
-	// autofill letters that are the same for all options.
-	var nextLetter *rune
-	nextLetterPos := len(laFile)
-	for _, s := range c.Suggestions {
-		if len(s) > nextLetterPos {
-			if nextLetter == nil {
-				rn := rune(s[nextLetterPos])
-				nextLetter = &rn
-			} else if rune(s[nextLetterPos]) != *nextLetter {
-				// If two options differ in next letter, then no extra letters can be
-				// filled. However, this is only a problem if we are completing an
-				// argument for a sub-directory or if the cases are different.
-				c.DontComplete = len(laDir) != 0 || mismatchedCasePrefix
-				return c
+	casifiedPrefix := c.Suggestions[0][:len(laFile)]
+
+	var autofillLetters []rune
+	proceed := true
+	for nextLetterPos := len(laFile); proceed; nextLetterPos++ {
+		var nextLetter *rune
+		var lowerNextLetter rune
+		for _, s := range c.Suggestions {
+			if len(s) <= nextLetterPos {
+				// If a remaining suggestion has run out of letters, then
+				// we can't autocomplete more than that.
+				proceed = false
+				break
 			}
+
+			char := rune(s[nextLetterPos])
+			if nextLetter == nil {
+				nextLetter = &char
+				lowerNextLetter = unicode.ToLower(char)
+				continue
+			}
+
+			if unicode.ToLower(char) != lowerNextLetter {
+				proceed = false
+				break
+			}
+		}
+
+		if proceed {
+			autofillLetters = append(autofillLetters, *nextLetter)
 		}
 	}
 
-	// If we are here, then we can autofill some letters
-	for i, s := range c.Suggestions {
-		c.Suggestions[i] = fmt.Sprintf("%s%s", laDir, s)
+	if len(autofillLetters) == 0 {
+		// Nothing can be autofilled so we just return file names
+		c.DontComplete = false
+		return c
+	}
+
+	// Otherwise, we should complete all of the autofill letters
+	c.DontComplete = false
+	autofillTo := laDir + casifiedPrefix + string(autofillLetters)
+	c.Suggestions = []string{
+		autofillTo,
+		autofillTo + "_",
 	}
 	return c
 }

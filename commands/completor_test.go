@@ -122,8 +122,8 @@ func TestFetchers(t *testing.T) {
 			f:    &FileFetcher{},
 			args: []string{"ar"},
 			want: []string{
-				"arg_options.go",
-				"arg_types.go",
+				"arg_",
+				"arg__",
 			},
 		},
 		{
@@ -132,8 +132,8 @@ func TestFetchers(t *testing.T) {
 			args:      []string{"ar"},
 			stringArg: true,
 			want: []string{
-				"arg_options.go",
-				"arg_types.go",
+				"arg_",
+				"arg__",
 			},
 		},
 		{
@@ -203,9 +203,8 @@ func TestFetchers(t *testing.T) {
 				IgnoreDirectories: true,
 			},
 			want: []string{
-				"file1.txt",
-				"file2.txt",
-				"file3.txt",
+				"file",
+				"file_",
 			},
 		},
 		{
@@ -250,7 +249,6 @@ func TestFetchers(t *testing.T) {
 				"fourth.py",
 				"second.py",
 				"third.go",
-				" ",
 			},
 		},
 		{
@@ -264,7 +262,6 @@ func TestFetchers(t *testing.T) {
 				"fourth.py",
 				"second.py",
 				"third.go",
-				" ",
 			},
 		},
 		{
@@ -276,7 +273,6 @@ func TestFetchers(t *testing.T) {
 				"dir2/",
 				"dir3/",
 				"dir4/",
-				" ",
 			},
 		},
 		{
@@ -284,10 +280,8 @@ func TestFetchers(t *testing.T) {
 			f:    &FileFetcher{},
 			args: []string{"testing/d"},
 			want: []string{
-				"testing/dir1/",
-				"testing/dir2/",
-				"testing/dir3/",
-				"testing/dir4/",
+				"testing/dir",
+				"testing/dir_",
 			},
 		},
 		{
@@ -326,7 +320,6 @@ func TestFetchers(t *testing.T) {
 			want: []string{
 				"goodbye.go",
 				"hello.txt",
-				" ",
 			},
 		},
 		{
@@ -336,7 +329,6 @@ func TestFetchers(t *testing.T) {
 			want: []string{
 				"goodbye.go",
 				"hello.txt",
-				" ",
 			},
 		},
 		{
@@ -344,8 +336,8 @@ func TestFetchers(t *testing.T) {
 			f:    &FileFetcher{},
 			args: []string{`testing/dir4/fo`},
 			want: []string{
-				`testing/dir4/folder\ with\ spaces/`,
-				"testing/dir4/folder_without_spaces/",
+				"testing/dir4/folder",
+				"testing/dir4/folder_",
 			},
 		},
 		{
@@ -358,7 +350,6 @@ func TestFetchers(t *testing.T) {
 				"dir2/",
 				"dir3/",
 				"dir4/",
-				" ",
 			},
 		},
 		{
@@ -369,7 +360,6 @@ func TestFetchers(t *testing.T) {
 			want: []string{
 				"first.txt",
 				"fourth.py",
-				" ",
 			},
 		},
 		{
@@ -378,10 +368,8 @@ func TestFetchers(t *testing.T) {
 			commandBranch: true,
 			args:          []string{"testing/dI"},
 			want: []string{
-				"testing/dir1/",
-				"testing/dir2/",
-				"testing/dir3/",
-				"testing/dir4/",
+				"testing/dir",
+				"testing/dir_",
 			},
 		},
 		{
@@ -394,7 +382,6 @@ func TestFetchers(t *testing.T) {
 				"dir2/",
 				"dir3/",
 				"dir4/",
-				" ",
 			},
 		},
 		{
@@ -403,43 +390,32 @@ func TestFetchers(t *testing.T) {
 			commandBranch: true,
 			args:          []string{"testing/cases/abc"},
 			want: []string{
-				"ABCDE.TXT",
-				"abcdef.txt",
-				"aBcDeFg.txt",
-				"ABcdEFgh.TXT",
-				" ",
+				"testing/cases/ABCDE",
+				"testing/cases/ABCDE_",
 			},
 		},
 		{
-			name:          "file fetcher sorting ignores cases",
+			name:          "file fetcher sorting ignores cases when no file",
 			f:             &FileFetcher{},
 			commandBranch: true,
 			args:          []string{"testing/moreCases/"},
 			want: []string{
-				"QW_four.txt",
-				"qw_one.txt",
-				"qW_three.txt",
-				"qw_TRES.txt",
-				"Qw_two.txt",
-				" ",
+				"testing/moreCases/QW_",
+				"testing/moreCases/QW__",
 			},
 		},
 		{
-			name:          "file fetcher sorting ignores cases",
+			name:          "file fetcher sorting ignores cases when autofilling",
 			f:             &FileFetcher{},
 			commandBranch: true,
 			args:          []string{"testing/moreCases/q"},
 			want: []string{
-				"QW_four.txt",
-				"qw_one.txt",
-				"qW_three.txt",
-				"qw_TRES.txt",
-				"Qw_two.txt",
-				" ",
+				"testing/moreCases/QW_",
+				"testing/moreCases/QW__",
 			},
 		},
 		{
-			name:          "file fetcher sorting ignores cases",
+			name:          "file fetcher sorting ignores cases when not autofilling",
 			f:             &FileFetcher{},
 			commandBranch: true,
 			args:          []string{"testing/moreCases/qW_t"},
@@ -447,7 +423,6 @@ func TestFetchers(t *testing.T) {
 				"qW_three.txt",
 				"qw_TRES.txt",
 				"Qw_two.txt",
-				" ",
 			},
 		},
 		/* Useful for commenting out tests */
