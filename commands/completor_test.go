@@ -115,6 +115,7 @@ func TestFetchers(t *testing.T) {
 				"testing/",
 				"value_test.go",
 				"values.go",
+				" ",
 			},
 		},
 		{
@@ -162,6 +163,7 @@ func TestFetchers(t *testing.T) {
 				"one.txt",
 				"three.txt",
 				"two.txt",
+				" ",
 			},
 		},
 		{
@@ -174,6 +176,7 @@ func TestFetchers(t *testing.T) {
 				"fourth.py",
 				"second.py",
 				"third.go",
+				" ",
 			},
 		},
 		{
@@ -185,6 +188,7 @@ func TestFetchers(t *testing.T) {
 			want: []string{
 				"fourth.py",
 				"second.py",
+				" ",
 			},
 		},
 		{
@@ -196,6 +200,7 @@ func TestFetchers(t *testing.T) {
 			want: []string{
 				"that/",
 				"this.txt",
+				" ",
 			},
 		},
 		{
@@ -220,6 +225,7 @@ func TestFetchers(t *testing.T) {
 				"childD/",
 				"subA/",
 				"subB/",
+				" ",
 			},
 		},
 		{
@@ -228,7 +234,7 @@ func TestFetchers(t *testing.T) {
 			args: []string{"testing/dir1"},
 			want: []string{
 				"testing/dir1/",
-				"testing/dir1//",
+				"testing/dir1/_",
 			},
 		},
 		{
@@ -239,7 +245,7 @@ func TestFetchers(t *testing.T) {
 			args: []string{"dir1"},
 			want: []string{
 				"dir1/",
-				"dir1//",
+				"dir1/_",
 			},
 		},
 		{
@@ -251,6 +257,7 @@ func TestFetchers(t *testing.T) {
 				"fourth.py",
 				"second.py",
 				"third.go",
+				" ",
 			},
 		},
 		{
@@ -264,6 +271,7 @@ func TestFetchers(t *testing.T) {
 				"fourth.py",
 				"second.py",
 				"third.go",
+				" ",
 			},
 		},
 		{
@@ -275,6 +283,7 @@ func TestFetchers(t *testing.T) {
 				"dir2/",
 				"dir3/",
 				"dir4/",
+				" ",
 			},
 		},
 		{
@@ -295,6 +304,7 @@ func TestFetchers(t *testing.T) {
 			want: []string{
 				"first.txt",
 				"fourth.py",
+				" ",
 			},
 		},
 		{
@@ -303,7 +313,7 @@ func TestFetchers(t *testing.T) {
 			args: []string{`testing/dir4/folder\`, `wit`},
 			want: []string{
 				`testing/dir4/folder\ with\ spaces/`,
-				`testing/dir4/folder\ with\ spaces//`,
+				`testing/dir4/folder\ with\ spaces/_`,
 			},
 		},
 		{
@@ -312,7 +322,7 @@ func TestFetchers(t *testing.T) {
 			args: []string{`testing/dir4/folder\ wit`},
 			want: []string{
 				`testing/dir4/folder\ with\ spaces/`,
-				`testing/dir4/folder\ with\ spaces//`,
+				`testing/dir4/folder\ with\ spaces/_`,
 			},
 		},
 		{
@@ -322,6 +332,7 @@ func TestFetchers(t *testing.T) {
 			want: []string{
 				"goodbye.go",
 				"hello.txt",
+				" ",
 			},
 		},
 		{
@@ -331,6 +342,7 @@ func TestFetchers(t *testing.T) {
 			want: []string{
 				"goodbye.go",
 				"hello.txt",
+				" ",
 			},
 		},
 		{
@@ -352,6 +364,7 @@ func TestFetchers(t *testing.T) {
 				"dir2/",
 				"dir3/",
 				"dir4/",
+				" ",
 			},
 		},
 		{
@@ -362,6 +375,7 @@ func TestFetchers(t *testing.T) {
 			want: []string{
 				"first.txt",
 				"fourth.py",
+				" ",
 			},
 		},
 		{
@@ -384,6 +398,7 @@ func TestFetchers(t *testing.T) {
 				"dir2/",
 				"dir3/",
 				"dir4/",
+				" ",
 			},
 		},
 		{
@@ -425,6 +440,7 @@ func TestFetchers(t *testing.T) {
 				"qW_three.txt",
 				"qw_TRES.txt",
 				"Qw_two.txt",
+				" ",
 			},
 		},
 		{
@@ -452,9 +468,18 @@ func TestFetchers(t *testing.T) {
 			f:    &FileFetcher{},
 			args: []string{"testing/METADATA"},
 			want: []string{
-				// This is needed because
 				"METADATA",
 				"metadata_/",
+				" ",
+			},
+		},
+		{
+			name: "file fetcher doesn't complete when matches a prefix file",
+			f:    &FileFetcher{},
+			args: []string{"testing/metadata_/m"},
+			want: []string{
+				"m1",
+				"m2",
 				" ",
 			},
 		},

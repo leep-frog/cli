@@ -14,6 +14,10 @@ var (
 	filepathAbs = filepath.Abs
 )
 
+const (
+	suffixChar = "_"
+)
+
 type Completor struct {
 	Distinct          bool
 	SuggestionFetcher Fetcher
@@ -177,7 +181,7 @@ func (ff *FileFetcher) Fetch(value *Value, args, flags map[string]*Value) *Compl
 		if onlyDir {
 			// This does dir1/ and dir1// so that the user's command is autocompleted to dir1/
 			// without a space after it.
-			c.Suggestions = append(c.Suggestions, fmt.Sprintf("%s/", c.Suggestions[0]))
+			c.Suggestions = append(c.Suggestions, fmt.Sprintf("%s%s", c.Suggestions[0], suffixChar))
 		}
 		return c
 	}
@@ -186,7 +190,6 @@ func (ff *FileFetcher) Fetch(value *Value, args, flags map[string]*Value) *Compl
 
 	var autofillLetters []rune
 	proceed := true
-	argMatchesPrefix := false
 	for nextLetterPos := len(laFile); proceed; nextLetterPos++ {
 		var nextLetter *rune
 		var lowerNextLetter rune
@@ -195,7 +198,6 @@ func (ff *FileFetcher) Fetch(value *Value, args, flags map[string]*Value) *Compl
 				// If a remaining suggestion has run out of letters, then
 				// we can't autocomplete more than that.
 				proceed = false
-				argMatchesPrefix = true
 				break
 			}
 
@@ -219,7 +221,10 @@ func (ff *FileFetcher) Fetch(value *Value, args, flags map[string]*Value) *Compl
 
 	if len(autofillLetters) == 0 {
 		// Nothing can be autofilled so we just return file names
-		c.DontComplete = argMatchesPrefix
+		// Don't autocomplete because all suggestions have the same
+		// prefix so this would actually autocomplete to the prefix
+		// without the directory name
+		c.DontComplete = true
 		return c
 	}
 
@@ -228,7 +233,7 @@ func (ff *FileFetcher) Fetch(value *Value, args, flags map[string]*Value) *Compl
 	autofillTo := laDir + casifiedPrefix + string(autofillLetters)
 	c.Suggestions = []string{
 		autofillTo,
-		autofillTo + "_",
+		autofillTo + suffixChar,
 	}
 	return c
 }
