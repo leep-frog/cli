@@ -156,6 +156,8 @@ func TestFetchers(t *testing.T) {
 				"dir4/",
 				"empty/",
 				"four.txt",
+				"METADATA",
+				"metadata_/",
 				"moreCases/",
 				"one.txt",
 				"three.txt",
@@ -423,6 +425,26 @@ func TestFetchers(t *testing.T) {
 				"qW_three.txt",
 				"qw_TRES.txt",
 				"Qw_two.txt",
+			},
+		},
+		{
+			name: "file fetcher completes when cases mismatch",
+			f:    &FileFetcher{},
+			args: []string{"testing/meta"},
+			want: []string{
+				"testing/METADATA",
+				"testing/METADATA_",
+			},
+		},
+		{
+			name: "file fetcher completes when cases mismatch",
+			f: &FileFetcher{
+				Directory: "testing",
+			},
+			args: []string{"meta"},
+			want: []string{
+				"METADATA",
+				"METADATA_",
 			},
 		},
 		/* Useful for commenting out tests */
