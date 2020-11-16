@@ -437,7 +437,7 @@ func TestFetchers(t *testing.T) {
 			},
 		},
 		{
-			name: "file fetcher completes when cases mismatch",
+			name: "file fetcher completes when cases mismatch in current directory",
 			f: &FileFetcher{
 				Directory: "testing",
 			},
@@ -445,6 +445,17 @@ func TestFetchers(t *testing.T) {
 			want: []string{
 				"METADATA",
 				"METADATA_",
+			},
+		},
+		{
+			name: "file fetcher doesn't complete when matches a prefix",
+			f:    &FileFetcher{},
+			args: []string{"testing/METADATA"},
+			want: []string{
+				// This is needed because
+				"METADATA",
+				"metadata_/",
+				" ",
 			},
 		},
 		/* Useful for commenting out tests */

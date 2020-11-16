@@ -186,6 +186,7 @@ func (ff *FileFetcher) Fetch(value *Value, args, flags map[string]*Value) *Compl
 
 	var autofillLetters []rune
 	proceed := true
+	argMatchesPrefix := false
 	for nextLetterPos := len(laFile); proceed; nextLetterPos++ {
 		var nextLetter *rune
 		var lowerNextLetter rune
@@ -194,6 +195,7 @@ func (ff *FileFetcher) Fetch(value *Value, args, flags map[string]*Value) *Compl
 				// If a remaining suggestion has run out of letters, then
 				// we can't autocomplete more than that.
 				proceed = false
+				argMatchesPrefix = true
 				break
 			}
 
@@ -217,7 +219,7 @@ func (ff *FileFetcher) Fetch(value *Value, args, flags map[string]*Value) *Compl
 
 	if len(autofillLetters) == 0 {
 		// Nothing can be autofilled so we just return file names
-		c.DontComplete = false
+		c.DontComplete = argMatchesPrefix
 		return c
 	}
 
