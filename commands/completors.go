@@ -82,8 +82,13 @@ func (c *Completor) Complete(rawValue string, value *Value, args, flags map[stri
 	}
 
 	existingValues := map[string]bool{}
-	for _, s := range *value.StringList() {
-		existingValues[s] = true
+
+	// Don't include the last element because sometimes we want to just add a
+	// a space to the command. For example,
+	// "e commands.go" should return ["commands.go"]
+	sl := *value.StringList()
+	for i := 0; i < len(sl)-1; i++ {
+		existingValues[sl[i]] = true
 	}
 
 	var distinctOpts []string

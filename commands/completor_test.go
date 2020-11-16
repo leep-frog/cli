@@ -63,6 +63,7 @@ func TestFetchers(t *testing.T) {
 	for _, test := range []struct {
 		name          string
 		f             Fetcher
+		distinct      bool
 		args          []string
 		absErr        error
 		stringArg     bool
@@ -483,6 +484,15 @@ func TestFetchers(t *testing.T) {
 				" ",
 			},
 		},
+		{
+			name:     "file fetcher returns complete match if distinct",
+			f:        &FileFetcher{},
+			distinct: true,
+			args:     []string{"testing/metadata_/m1"},
+			want: []string{
+				"testing/metadata_/m1",
+			},
+		},
 		/* Useful for commenting out tests */
 	} {
 		t.Run(test.name, func(t *testing.T) {
@@ -497,6 +507,7 @@ func TestFetchers(t *testing.T) {
 
 			completor := &Completor{
 				SuggestionFetcher: test.f,
+				Distinct:          test.distinct,
 			}
 
 			arg := StringListArg("test", 2, 5, completor)
