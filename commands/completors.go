@@ -141,7 +141,6 @@ func (ff *FileFetcher) Fetch(value *Value, args, flags map[string]*Value) *Compl
 
 	onlyDir := true
 	suggestions := make([]string, 0, len(files))
-	mismatchedCasePrefix := false
 	for _, f := range files {
 		if (f.Mode().IsDir() && ff.IgnoreDirectories) || (f.Mode().IsRegular() && ff.IgnoreFiles) {
 			continue
@@ -153,10 +152,6 @@ func (ff *FileFetcher) Fetch(value *Value, args, flags map[string]*Value) *Compl
 
 		if !strings.HasPrefix(strings.ToLower(f.Name()), strings.ToLower(laFile)) {
 			continue
-		}
-
-		if !mismatchedCasePrefix && !strings.HasPrefix(f.Name(), laFile) {
-			mismatchedCasePrefix = true
 		}
 
 		if f.Mode().IsDir() {
@@ -191,14 +186,32 @@ func (ff *FileFetcher) Fetch(value *Value, args, flags map[string]*Value) *Compl
 		return c
 	}
 
-	casifiedPrefix := c.Suggestions[0][:len(laFile)]
+	autoFill, ok := getAutofillLetters(laFile, c.Suggestions)
+	if !ok {
+		// Nothing can be autofilled so we just return file names
+		// Don't autocomplete because all suggestions have the same
+		// prefix so this would actually autocomplete to the prefix
+		// without the directory name
+		c.DontComplete = true
+		return c
+	}
 
-	var autofillLetters []rune
-	proceed := true
-	for nextLetterPos := len(laFile); proceed; nextLetterPos++ {
+	// Otherwise, we should complete all of the autofill letters
+	c.DontComplete = false
+	autoFill = laDir + autoFill
+	c.Suggestions = []string{
+		autoFill,
+		autoFill + suffixChar,
+	}
+	return c
+}
+
+func getAutofillLetters(laFile string, suggestions []string) (string, bool) {
+	nextLetterPos := len(laFile)
+	for proceed := true; proceed; nextLetterPos++ {
 		var nextLetter *rune
 		var lowerNextLetter rune
-		for _, s := range c.Suggestions {
+		for _, s := range suggestions {
 			if len(s) <= nextLetterPos {
 				// If a remaining suggestion has run out of letters, then
 				// we can't autocomplete more than that.
@@ -218,27 +231,19 @@ func (ff *FileFetcher) Fetch(value *Value, args, flags map[string]*Value) *Compl
 				break
 			}
 		}
+	}
 
-		if proceed {
-			autofillLetters = append(autofillLetters, *nextLetter)
+	completeUpTo := nextLetterPos - 1
+	if completeUpTo <= len(laFile) {
+		return "", false
+	}
+
+	caseToCompleteWith := suggestions[0]
+	for _, s := range suggestions {
+		if strings.HasPrefix(s, laFile) {
+			caseToCompleteWith = s
+			break
 		}
 	}
-
-	if len(autofillLetters) == 0 {
-		// Nothing can be autofilled so we just return file names
-		// Don't autocomplete because all suggestions have the same
-		// prefix so this would actually autocomplete to the prefix
-		// without the directory name
-		c.DontComplete = true
-		return c
-	}
-
-	// Otherwise, we should complete all of the autofill letters
-	c.DontComplete = false
-	autofillTo := laDir + casifiedPrefix + string(autofillLetters)
-	c.Suggestions = []string{
-		autofillTo,
-		autofillTo + suffixChar,
-	}
-	return c
+	return caseToCompleteWith[:completeUpTo], true
 }

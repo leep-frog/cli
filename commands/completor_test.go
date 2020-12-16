@@ -97,6 +97,8 @@ func TestFetchers(t *testing.T) {
 			f:      &FileFetcher{},
 			absErr: fmt.Errorf("failed to fetch directory"),
 		},
+		// TODO: automatically create the empty directory
+		// at beginning of this test (since not tracked by git).
 		{
 			name: "file fetcher handles empty directory",
 			f:    &FileFetcher{},
@@ -408,8 +410,8 @@ func TestFetchers(t *testing.T) {
 			commandBranch: true,
 			args:          []string{"testing/cases/abc"},
 			want: []string{
-				"testing/cases/ABCDE",
-				"testing/cases/ABCDE_",
+				"testing/cases/abcde",
+				"testing/cases/abcde_",
 			},
 		},
 		{
@@ -428,8 +430,8 @@ func TestFetchers(t *testing.T) {
 			commandBranch: true,
 			args:          []string{"testing/moreCases/q"},
 			want: []string{
-				"testing/moreCases/QW_",
-				"testing/moreCases/QW__",
+				"testing/moreCases/qW_",
+				"testing/moreCases/qW__",
 			},
 		},
 		{
@@ -445,20 +447,60 @@ func TestFetchers(t *testing.T) {
 			},
 		},
 		{
-			name: "file fetcher completes when cases mismatch",
+			name: "file fetcher completes to case matched completion",
 			f:    &FileFetcher{},
 			args: []string{"testing/meta"},
+			want: []string{
+				"testing/metadata",
+				"testing/metadata_",
+			},
+		},
+		{
+			name: "file fetcher completes to case matched completion",
+			f:    &FileFetcher{},
+			args: []string{"testing/ME"},
 			want: []string{
 				"testing/METADATA",
 				"testing/METADATA_",
 			},
 		},
 		{
-			name: "file fetcher completes when cases mismatch in current directory",
+			name: "file fetcher completes to something when no cases match",
+			f:    &FileFetcher{},
+			args: []string{"testing/MeTa"},
+			want: []string{
+				"testing/METADATA",
+				"testing/METADATA_",
+			},
+		},
+		{
+			name: "file fetcher completes to case matched completion in current directory",
 			f: &FileFetcher{
 				Directory: "testing",
 			},
 			args: []string{"meta"},
+			want: []string{
+				"metadata",
+				"metadata_",
+			},
+		},
+		{
+			name: "file fetcher completes to case matched completion in current directory",
+			f: &FileFetcher{
+				Directory: "testing",
+			},
+			args: []string{"MET"},
+			want: []string{
+				"METADATA",
+				"METADATA_",
+			},
+		},
+		{
+			name: "file fetcher completes to something when no cases match in current directory",
+			f: &FileFetcher{
+				Directory: "testing",
+			},
+			args: []string{"meTA"},
 			want: []string{
 				"METADATA",
 				"METADATA_",
