@@ -114,8 +114,12 @@ func (lf *ListFetcher) Fetch(_ *Value, _, _ map[string]*Value) *Completion {
 }
 
 type FileFetcher struct {
-	Regexp            *regexp.Regexp
-	Directory         string
+	Regexp    *regexp.Regexp
+	Directory string
+	// Whether or not each argument has to be unique.
+	// Separate from Completor.Distinct because file fetching
+	// does more complicated custom logic.
+	Distinct          bool
 	IgnoreFiles       bool
 	IgnoreDirectories bool
 }
@@ -164,6 +168,27 @@ func (ff *FileFetcher) Fetch(value *Value, args, flags map[string]*Value) *Compl
 
 	if len(suggestions) == 0 {
 		return nil
+	}
+
+	// Remove any non-distinct matches, if relevant.
+	if ff.Distinct {
+		valSet := map[string]bool{}
+		// TODO: make validation function so file fetchers can only be
+		// assigned to string lists.
+		for _, v := range *value.StringList() {
+			valSet[v] = true
+		}
+
+		distinctSuggestions := make([]string, 0, len(suggestions))
+		for _, s := range suggestions {
+			if !valSet[fmt.Sprintf("%s%s", laDir, s)] {
+				distinctSuggestions = append(distinctSuggestions, s)
+			}
+		}
+		if len(distinctSuggestions) == 0 {
+			return nil
+		}
+		suggestions = distinctSuggestions
 	}
 
 	c := &Completion{

@@ -535,6 +535,107 @@ func TestFetchers(t *testing.T) {
 				"testing/metadata_/m1",
 			},
 		},
+		// Distinct file fetchers.
+		{
+			name: "file fetcher returns repeats if not distinct",
+			f:    &FileFetcher{},
+			args: []string{"testing/three.txt", "testing/t"},
+			want: []string{"three.txt", "two.txt", " "},
+		},
+		{
+			name: "file fetcher returns distinct",
+			f: &FileFetcher{
+				Distinct: true,
+			},
+			args: []string{"testing/three.txt", "testing/t"},
+			want: []string{"testing/two.txt"},
+		},
+		{
+			name: "file fetcher handles non with distinct",
+			f: &FileFetcher{
+				Distinct: true,
+			},
+			args: []string{"testing/three.txt", "testing/two.txt", "testing/t"},
+		},
+		{
+			name: "file fetcher first level distinct partially completes",
+			f: &FileFetcher{
+				Distinct: true,
+			},
+			args: []string{"c"},
+			want: []string{"com", "com_"},
+		},
+		{
+			name: "file fetcher first level distinct returns all options",
+			f: &FileFetcher{
+				Distinct: true,
+			},
+			args: []string{"com"},
+			want: []string{
+				"commands.go",
+				"commands_test.go",
+				"completor_test.go",
+				"completors.go",
+				" ",
+			},
+		},
+		{
+			name: "file fetcher first level distinct completes partial",
+			f: &FileFetcher{
+				Distinct: true,
+			},
+			args: []string{"commands.go", "c"},
+			want: []string{
+				"com",
+				"com_",
+			},
+		},
+		{
+			name: "file fetcher first level distinct suggests remaining",
+			f: &FileFetcher{
+				Distinct: true,
+			},
+			args: []string{"commands.go", "com"},
+			want: []string{
+				"commands_test.go",
+				"completor_test.go",
+				"completors.go",
+				" ",
+			},
+		},
+		{
+			name: "file fetcher first level distinct completes partial",
+			f: &FileFetcher{
+				Distinct: true,
+			},
+			args: []string{"commands.go", "commands_test.go", "c"},
+			want: []string{
+				"completor",
+				"completor_",
+			},
+		},
+		{
+			name: "file fetcher first level distinct suggests remaining subset",
+			f: &FileFetcher{
+				Distinct: true,
+			},
+			args: []string{"commands.go", "commands_test.go", "completor"},
+			want: []string{
+				"completor_test.go",
+				"completors.go",
+				" ",
+			},
+		},
+		{
+			name: "file fetcher first level distinct autofills remaining",
+			f: &FileFetcher{
+				Distinct: true,
+			},
+			args: []string{"commands.go", "commands_test.go", "completor_"},
+			want: []string{
+				"completor_test.go",
+			},
+		},
 		/* Useful for commenting out tests */
 	} {
 		t.Run(test.name, func(t *testing.T) {
