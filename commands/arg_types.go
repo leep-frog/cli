@@ -25,24 +25,36 @@ type argProcessor struct {
 }
 
 func (ap *argProcessor) Value(rawValue []string) (*Value, error) {
-	v := &Value{
-		valType: ap.ValueType,
-	}
+	var v *Value
 
 	var err error
 	switch ap.ValueType {
 	case StringType:
-		v.stringVal = rawValue[0]
+		v = &Value{
+			Type: &Value_String_{
+				String_: rawValue[0],
+			},
+		}
 	case StringListType:
-		v.stringList = rawValue
+		v = &Value{
+			Type: &Value_StringList{
+				StringList: &StringList{
+					List: rawValue,
+				},
+			},
+		}
 	case IntType:
 		i, e := strconv.Atoi(rawValue[0])
 		if e != nil {
 			err = fmt.Errorf("argument should be an integer: %v", e)
 		}
-		v.intVal = i
+		v = &Value{
+			Type: &Value_Int{
+				Int: int32(i),
+			},
+		}
 	case IntListType:
-		var is []int
+		var is []int32
 		for _, rv := range rawValue {
 			i, e := strconv.Atoi(rv)
 			if e != nil {
@@ -51,32 +63,52 @@ func (ap *argProcessor) Value(rawValue []string) (*Value, error) {
 			// TODO: do we want to append the zero value if error or no append at all?
 			// TODO: make whatever we decide is reflected in the float.
 			// Decided to do this because changing messes up Value.Length function
-			is = append(is, i)
+			is = append(is, int32(i))
 		}
-		v.intList = is
+		v = &Value{
+			Type: &Value_IntList{
+				IntList: &IntList{
+					List: is,
+				},
+			},
+		}
 	case FloatType:
 		f, e := strconv.ParseFloat(rawValue[0], 64)
 		if e != nil {
 			err = fmt.Errorf("argument should be a float: %v", e)
 		}
-		v.floatVal = f
+
+		v = &Value{
+			Type: &Value_Float{
+				Float: float32(f),
+			},
+		}
 	case FloatListType:
-		var fs []float64
+		var fs []float32
 		for _, rv := range rawValue {
 			f, e := strconv.ParseFloat(rv, 64)
 			if e != nil {
 				err = fmt.Errorf("float required for FloatList argument type: %v", e)
 			}
-			fs = append(fs, f)
+			fs = append(fs, float32(f))
 		}
-		v.floatList = fs
+		v = &Value{
+			Type: &Value_FloatList{
+				FloatList: &FloatList{
+					List: fs,
+				},
+			},
+		}
 	case BoolType:
 		if ap.MinN == 0 && ap.OptionalN == 0 { // flag value, true by presence
-			v.boolVal = true
-			v.boolFlag = true
+			v = &Value{
+				Type: &Value_Bool{
+					Bool: true,
+				},
+			}
 		} else { // arg value
-			var ok bool
-			v.boolVal, ok = boolStringMap[rawValue[0]]
+			var b, ok bool
+			b, ok = boolStringMap[rawValue[0]]
 			if !ok {
 				var keys []string
 				for k := range boolStringMap {
@@ -84,6 +116,11 @@ func (ap *argProcessor) Value(rawValue []string) (*Value, error) {
 				}
 				sort.Strings(keys)
 				err = fmt.Errorf("bool value must be one of %v", keys)
+			}
+			v = &Value{
+				Type: &Value_Bool{
+					Bool: b,
+				},
 			}
 		}
 	default:

@@ -116,6 +116,8 @@ func TestFetchers(t *testing.T) {
 				"completors.go",
 				"flag_types.go",
 				"testing/",
+				"value.pb.go",
+				"value.proto",
 				"value_test.go",
 				"values.go",
 				" ",

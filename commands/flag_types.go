@@ -24,6 +24,13 @@ func (gf *genericFlag) Complete(rawValue string, args, flags map[string]*Value) 
 	return gf.completor.Complete(rawValue, flags[gf.Name()], args, flags)
 }
 
+func (gf *genericFlag) Length(v *Value) int {
+	if v.IsType(BoolType) {
+		return 0
+	}
+	return v.Length()
+}
+
 func (gf *genericFlag) Usage() []string {
 	var flagString string
 	if gf.ShortName() == 0 {

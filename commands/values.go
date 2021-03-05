@@ -22,83 +22,39 @@ var (
 	}
 )
 
-// Value is the populated value.
-type Value struct {
-	valType ValueType
-
-	// One enumeration for each type.
-	stringVal  string
-	intVal     int
-	stringList []string
-	intList    []int
-	floatVal   float64
-	floatList  []float64
-	boolVal    bool
-	boolFlag   bool // whether or not the boolean is a flag
+func (v *Value) IsType(vt ValueType) bool {
+	switch v.Type.(type) {
+	case *Value_String_:
+		return vt == StringType
+	case *Value_Int:
+		return vt == IntType
+	case *Value_Float:
+		return vt == FloatType
+	case *Value_Bool:
+		return vt == BoolType
+	case *Value_StringList:
+		return vt == StringListType
+	case *Value_IntList:
+		return vt == IntListType
+	case *Value_FloatList:
+		return vt == FloatListType
+	}
+	return false
 }
 
 func (v *Value) Length() int {
-	switch v.valType {
-	case StringListType:
-		return len(v.stringList)
-	case IntListType:
-		return len(v.intList)
-	case FloatListType:
-		return len(v.floatList)
-	case BoolType:
-		if v.boolFlag {
-			return 0
-		}
+	switch v.Type.(type) {
+	case *Value_StringList:
+		return len(v.GetStringList().GetList())
+	case *Value_IntList:
+		return len(v.GetIntList().GetList())
+	case *Value_FloatList:
+		return len(v.GetFloatList().GetList())
+	case nil:
+		// The field is not set.
+		return 0
 	}
-	// Boolean type should be 0 for flag value and 1 for arg value?
+
+	// The field is set and is a singular.
 	return 1
-}
-
-func (v *Value) String() *string {
-	if v == nil || v.valType != StringType {
-		return nil
-	}
-	return &v.stringVal
-}
-
-func (v *Value) StringList() *[]string {
-	if v == nil || v.valType != StringListType {
-		return nil
-	}
-	return &v.stringList
-}
-
-func (v *Value) Int() *int {
-	if v == nil || v.valType != IntType {
-		return nil
-	}
-	return &v.intVal
-}
-
-func (v *Value) IntList() *[]int {
-	if v == nil || v.valType != IntListType {
-		return nil
-	}
-	return &v.intList
-}
-
-func (v *Value) Float() *float64 {
-	if v == nil || v.valType != FloatType {
-		return nil
-	}
-	return &v.floatVal
-}
-
-func (v *Value) FloatList() *[]float64 {
-	if v == nil || v.valType != FloatListType {
-		return nil
-	}
-	return &v.floatList
-}
-
-func (v *Value) Bool() *bool {
-	if v == nil || v.valType != BoolType {
-		return nil
-	}
-	return &v.boolVal
 }

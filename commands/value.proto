@@ -1,0 +1,30 @@
+syntax = "proto3";
+package commands;
+
+option go_package = "commands";
+
+message Value {
+  bool set = 1;
+  oneof type {
+    string string = 2;
+    int32 int = 3;
+    float float = 4;
+    bool bool = 5;
+
+    StringList string_list = 6;
+    IntList int_list = 7;
+    FloatList float_list = 8;
+  }
+}
+
+message StringList {
+  repeated string value = 1;
+}
+
+message IntList {
+  repeated int32 value = 1;
+}
+
+message FloatList {
+  repeated float value = 1;
+}

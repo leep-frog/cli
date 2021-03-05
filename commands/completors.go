@@ -75,7 +75,7 @@ func (c *Completor) Complete(rawValue string, value *Value, args, flags map[stri
 		completion.Suggestions = filteredOpts
 	}
 
-	if !c.Distinct || value.valType != StringListType {
+	if !c.Distinct || value.GetStringList() == nil {
 		// TODO: if we ever want to autocomplete non-string types, we should make Fetch
 		// return Value types (and add public methods to construct int, string, float values).
 		return completion
@@ -86,7 +86,7 @@ func (c *Completor) Complete(rawValue string, value *Value, args, flags map[stri
 	// Don't include the last element because sometimes we want to just add a
 	// a space to the command. For example,
 	// "e commands.go" should return ["commands.go"]
-	sl := *value.StringList()
+	sl := value.GetStringList().GetList()
 	for i := 0; i < len(sl)-1; i++ {
 		existingValues[sl[i]] = true
 	}
@@ -126,10 +126,11 @@ type FileFetcher struct {
 
 func (ff *FileFetcher) Fetch(value *Value, args, flags map[string]*Value) *Completion {
 	var lastArg string
-	if strPtr := value.String(); strPtr != nil {
-		lastArg = *strPtr
-	} else if slPtr := value.StringList(); slPtr != nil && len(*slPtr) > 0 {
-		lastArg = (*slPtr)[len(*slPtr)-1]
+	if value.IsType(StringType) {
+		lastArg = value.GetString_()
+	} else if value.IsType(StringListType) && len(value.GetStringList().GetList()) > 0 {
+		l := value.GetStringList().GetList()
+		lastArg = l[len(l)-1]
 	}
 
 	laDir, laFile := filepath.Split(lastArg)
@@ -175,7 +176,7 @@ func (ff *FileFetcher) Fetch(value *Value, args, flags map[string]*Value) *Compl
 		valSet := map[string]bool{}
 		// TODO: make validation function so file fetchers can only be
 		// assigned to string lists.
-		for _, v := range *value.StringList() {
+		for _, v := range value.GetStringList().GetList() {
 			valSet[v] = true
 		}
 

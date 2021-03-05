@@ -416,7 +416,7 @@ func (tc *TerminusCommand) Execute(cos CommandOS, args []string, oi *OptionInfo)
 
 		if fullyProcessed {
 			flagValues[flag.Name()] = value
-			idx += 1 + value.Length()
+			idx += 1 + flag.Length(value)
 		} else {
 			cos.Stderr("not enough values passed to flag %q", flag.Name())
 			return nil, false
@@ -453,6 +453,9 @@ func (tc *TerminusCommand) Execute(cos CommandOS, args []string, oi *OptionInfo)
 	// Iterate to first non-optional argument
 	for ; argIdx < len(tc.Args) && tc.Args[argIdx].Optional(); argIdx++ {
 	}
+
+	fmt.Println("pop args", populatedArgs)
+	fmt.Println("flag vals", flagValues)
 
 	if argIdx != len(tc.Args) {
 		nextArg := tc.Args[argIdx]
@@ -506,7 +509,7 @@ func (tc *TerminusCommand) Complete(args []string) *Completion {
 		}
 		flagValues[flag.Name()] = value
 		if fullyProcessed {
-			idx += value.Length() + 1 // + 1 for flag itself
+			idx += flag.Length(value) + 1 // + 1 for flag itself
 			if idx >= len(args) {
 				return flag.Complete(argPrefix, nil, flagValues)
 			}
@@ -596,4 +599,5 @@ type Flag interface {
 	ProcessArgs(args []string) (*Value, bool, error)
 	Complete(rawValue string, args, flags map[string]*Value) *Completion
 	Usage() []string
+	Length(*Value) int
 }

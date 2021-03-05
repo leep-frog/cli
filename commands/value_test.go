@@ -34,19 +34,19 @@ func boolP(b bool) *bool {
 	return &b
 }
 
-func TestValueComands(t *testing.T) {
+func TestValueCommands(t *testing.T) {
 	for _, test := range []struct {
 		name           string
 		vt             ValueType
 		argDef         Arg
 		args           []string
-		wantString     *string
-		wantStringList *[]string
-		wantInt        *int
-		wantIntList    *[]int
-		wantFloat      *float64
-		wantFloatList  *[]float64
-		wantBool       *bool
+		wantString     string
+		wantStringList []string
+		wantInt        int32
+		wantIntList    []int32
+		wantFloat      float32
+		wantFloatList  []float32
+		wantBool       bool
 		wantOK         bool
 		want           *ExecutorResponse
 		wantStdout     []string
@@ -57,7 +57,7 @@ func TestValueComands(t *testing.T) {
 			vt:         StringType,
 			argDef:     StringArg("argName", true, nil),
 			args:       []string{"string-val"},
-			wantString: stringP("string-val"),
+			wantString: "string-val",
 			want:       &ExecutorResponse{},
 			wantOK:     true,
 		},
@@ -66,7 +66,7 @@ func TestValueComands(t *testing.T) {
 			vt:             StringListType,
 			argDef:         StringListArg("argName", 2, 3, nil),
 			args:           []string{"string", "list", "val"},
-			wantStringList: &[]string{"string", "list", "val"},
+			wantStringList: []string{"string", "list", "val"},
 			want:           &ExecutorResponse{},
 			wantOK:         true,
 		},
@@ -75,7 +75,7 @@ func TestValueComands(t *testing.T) {
 			vt:      IntType,
 			argDef:  IntArg("argName", true, nil),
 			args:    []string{"123"},
-			wantInt: intP(123),
+			wantInt: 123,
 			want:    &ExecutorResponse{},
 			wantOK:  true,
 		},
@@ -84,7 +84,7 @@ func TestValueComands(t *testing.T) {
 			vt:          IntListType,
 			argDef:      IntListArg("argName", 2, 3, nil),
 			args:        []string{"12", "345", "6"},
-			wantIntList: &[]int{12, 345, 6},
+			wantIntList: []int32{12, 345, 6},
 			want:        &ExecutorResponse{},
 			wantOK:      true,
 		},
@@ -93,7 +93,7 @@ func TestValueComands(t *testing.T) {
 			vt:        FloatType,
 			argDef:    FloatArg("argName", true, nil),
 			args:      []string{"12.3"},
-			wantFloat: floatP(12.3),
+			wantFloat: 12.3,
 			want:      &ExecutorResponse{},
 			wantOK:    true,
 		},
@@ -102,7 +102,7 @@ func TestValueComands(t *testing.T) {
 			vt:            FloatListType,
 			argDef:        FloatListArg("argName", 2, 3, nil),
 			args:          []string{"1.2", "-345", ".6"},
-			wantFloatList: &[]float64{1.2, -345, .6},
+			wantFloatList: []float32{1.2, -345, .6},
 			want:          &ExecutorResponse{},
 			wantOK:        true,
 		},
@@ -111,7 +111,7 @@ func TestValueComands(t *testing.T) {
 			vt:       BoolType,
 			argDef:   BoolArg("argName", true),
 			args:     []string{"true"},
-			wantBool: boolP(true),
+			wantBool: true,
 			want:     &ExecutorResponse{},
 			wantOK:   true,
 		},
@@ -125,31 +125,31 @@ func TestValueComands(t *testing.T) {
 					v := args[test.argDef.Name()]
 
 					// strings
-					if diff := cmp.Diff(test.wantString, v.String()); diff != "" {
+					if diff := cmp.Diff(test.wantString, v.GetString_()); diff != "" {
 						t.Errorf("String() produced diff (-want, +got):\n%s", diff)
 					}
-					if diff := cmp.Diff(test.wantStringList, v.StringList()); diff != "" {
+					if diff := cmp.Diff(test.wantStringList, v.GetStringList().GetList()); diff != "" {
 						t.Errorf("StringList() produced diff (-want, +got):\n%s", diff)
 					}
 
 					// ints
-					if diff := cmp.Diff(test.wantInt, v.Int()); diff != "" {
+					if diff := cmp.Diff(test.wantInt, v.GetInt()); diff != "" {
 						t.Errorf("Int() produced diff (-want, +got):\n%s", diff)
 					}
-					if diff := cmp.Diff(test.wantIntList, v.IntList()); diff != "" {
+					if diff := cmp.Diff(test.wantIntList, v.GetIntList().GetList()); diff != "" {
 						t.Errorf("IntList() produced diff (-want, +got):\n%s", diff)
 					}
 
 					// floats
-					if diff := cmp.Diff(test.wantFloat, v.Float()); diff != "" {
+					if diff := cmp.Diff(test.wantFloat, v.GetFloat()); diff != "" {
 						t.Errorf("Float() produced diff (-want, +got):\n%s", diff)
 					}
-					if diff := cmp.Diff(test.wantFloatList, v.FloatList()); diff != "" {
+					if diff := cmp.Diff(test.wantFloatList, v.GetFloatList().GetList()); diff != "" {
 						t.Errorf("FloatList() produced diff (-want, +got):\n%s", diff)
 					}
 
 					// bool
-					if diff := cmp.Diff(test.wantBool, v.Bool()); diff != "" {
+					if diff := cmp.Diff(test.wantBool, v.GetBool()); diff != "" {
 						t.Errorf("Bool() produced diff (-want, +got):\n%s", diff)
 					}
 
