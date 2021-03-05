@@ -34,6 +34,7 @@ func (ap *argProcessor) Value(rawValue []string) (*Value, error) {
 			Type: &Value_String_{
 				String_: rawValue[0],
 			},
+			Set: true,
 		}
 	case StringListType:
 		v = &Value{
@@ -42,6 +43,7 @@ func (ap *argProcessor) Value(rawValue []string) (*Value, error) {
 					List: rawValue,
 				},
 			},
+			Set: true,
 		}
 	case IntType:
 		i, e := strconv.Atoi(rawValue[0])
@@ -52,6 +54,7 @@ func (ap *argProcessor) Value(rawValue []string) (*Value, error) {
 			Type: &Value_Int{
 				Int: int32(i),
 			},
+			Set: true,
 		}
 	case IntListType:
 		var is []int32
@@ -71,6 +74,7 @@ func (ap *argProcessor) Value(rawValue []string) (*Value, error) {
 					List: is,
 				},
 			},
+			Set: true,
 		}
 	case FloatType:
 		f, e := strconv.ParseFloat(rawValue[0], 64)
@@ -82,6 +86,7 @@ func (ap *argProcessor) Value(rawValue []string) (*Value, error) {
 			Type: &Value_Float{
 				Float: float32(f),
 			},
+			Set: true,
 		}
 	case FloatListType:
 		var fs []float32
@@ -98,6 +103,7 @@ func (ap *argProcessor) Value(rawValue []string) (*Value, error) {
 					List: fs,
 				},
 			},
+			Set: true,
 		}
 	case BoolType:
 		if ap.MinN == 0 && ap.OptionalN == 0 { // flag value, true by presence
@@ -105,6 +111,7 @@ func (ap *argProcessor) Value(rawValue []string) (*Value, error) {
 				Type: &Value_Bool{
 					Bool: true,
 				},
+				Set: true,
 			}
 		} else { // arg value
 			var b, ok bool
@@ -121,6 +128,7 @@ func (ap *argProcessor) Value(rawValue []string) (*Value, error) {
 				Type: &Value_Bool{
 					Bool: b,
 				},
+				Set: true,
 			}
 		}
 	default:

@@ -14,16 +14,18 @@ message Value {
     IntList int_list = 6;
     FloatList float_list = 7;
   }
+
+  bool set = 8;
 }
 
 message StringList {
-  repeated string value = 1;
+  repeated string list = 1;
 }
 
 message IntList {
-  repeated int32 value = 1;
+  repeated int32 list = 1;
 }
 
 message FloatList {
-  repeated float value = 1;
+  repeated float list = 1;
 }

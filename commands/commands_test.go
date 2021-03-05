@@ -59,6 +59,346 @@ func TestUsage(t *testing.T) {
 	}
 }
 
+func TestSet(t *testing.T) {
+	for _, test := range []struct {
+		name        string
+		args        []string
+		cArgs       []Arg
+		cFlags      []Flag
+		wantArgSet  map[string]bool
+		wantFlagSet map[string]bool
+	}{
+		{
+			name: "set is true when required string provided",
+			args: []string{"hello"},
+			cArgs: []Arg{
+				StringArg("strArg", true, nil),
+			},
+			wantArgSet: map[string]bool{
+				"strArg": true,
+			},
+		},
+		{
+			name: "set is true when optional string provided",
+			args: []string{"hello"},
+			cArgs: []Arg{
+				StringArg("strArg", false, nil),
+			},
+			wantArgSet: map[string]bool{
+				"strArg": true,
+			},
+		},
+		{
+			name: "set is false when no optional string provided",
+			args: []string{},
+			cArgs: []Arg{
+				StringArg("strArg", false, nil),
+			},
+			wantArgSet: map[string]bool{
+				"strArg": false,
+			},
+		},
+		{
+			name: "set is true when int provided",
+			args: []string{"12"},
+			cArgs: []Arg{
+				IntArg("intArg", false, nil),
+			},
+			wantArgSet: map[string]bool{
+				"intArg": true,
+			},
+		},
+		{
+			name: "set is false when int is not provided",
+			args: []string{},
+			cArgs: []Arg{
+				IntArg("intArg", false, nil),
+			},
+			wantArgSet: map[string]bool{
+				"intArg": false,
+			},
+		},
+		{
+			name: "set is true when float provided",
+			args: []string{"1.2"},
+			cArgs: []Arg{
+				FloatArg("ftArg", false, nil),
+			},
+			wantArgSet: map[string]bool{
+				"ftArg": true,
+			},
+		},
+		{
+			name: "set is false when float is not provided",
+			args: []string{},
+			cArgs: []Arg{
+				FloatArg("ftArg", false, nil),
+			},
+			wantArgSet: map[string]bool{
+				"ftArg": false,
+			},
+		},
+		{
+			name: "set is true when bool provided",
+			args: []string{"false"},
+			cArgs: []Arg{
+				BoolArg("bArg", false),
+			},
+			wantArgSet: map[string]bool{
+				"bArg": true,
+			},
+		},
+		{
+			name: "set is false when bool is not provided",
+			args: []string{},
+			cArgs: []Arg{
+				BoolArg("bArg", false),
+			},
+			wantArgSet: map[string]bool{
+				"bArg": false,
+			},
+		},
+		{
+			name: "set is true when string list provided",
+			args: []string{"he", "yo"},
+			cArgs: []Arg{
+				StringListArg("slArg", 0, 3, nil),
+			},
+			wantArgSet: map[string]bool{
+				"slArg": true,
+			},
+		},
+		{
+			name: "set is false when string list is not provided",
+			args: []string{},
+			cArgs: []Arg{
+				StringListArg("slArg", 0, 3, nil),
+			},
+			wantArgSet: map[string]bool{
+				"slArg": false,
+			},
+		},
+		{
+			name: "set is true when int list provided",
+			args: []string{"2", "-46"},
+			cArgs: []Arg{
+				IntListArg("ilArg", 0, 3, nil),
+			},
+			wantArgSet: map[string]bool{
+				"ilArg": true,
+			},
+		},
+		{
+			name: "set is false when int list is not provided",
+			args: []string{},
+			cArgs: []Arg{
+				IntListArg("ilArg", 0, 3, nil),
+			},
+			wantArgSet: map[string]bool{
+				"ilArg": false,
+			},
+		},
+		{
+			name: "set is true when float list provided",
+			args: []string{"0.2", "-4.6"},
+			cArgs: []Arg{
+				FloatListArg("flArg", 0, 3, nil),
+			},
+			wantArgSet: map[string]bool{
+				"flArg": true,
+			},
+		},
+		{
+			name: "set is false when float list is not provided",
+			args: []string{},
+			cArgs: []Arg{
+				FloatListArg("flArg", 0, 3, nil),
+			},
+			wantArgSet: map[string]bool{
+				"flArg": false,
+			},
+		},
+		// Flags set
+		{
+			name: "set is true when string flag provided",
+			args: []string{"-f", "hello"},
+			cFlags: []Flag{
+				StringFlag("strF", 'f', nil),
+			},
+			wantFlagSet: map[string]bool{
+				"strF": true,
+			},
+		},
+		{
+			name: "set is false when string flag is not provided",
+			args: []string{},
+			cFlags: []Flag{
+				StringFlag("strF", 'f', nil),
+			},
+			wantFlagSet: map[string]bool{
+				"strF": false,
+			},
+		},
+		{
+			name: "set is true when int flag provided",
+			args: []string{"-f", "12"},
+			cFlags: []Flag{
+				IntFlag("intF", 'f', nil),
+			},
+			wantFlagSet: map[string]bool{
+				"intF": true,
+			},
+		},
+		{
+			name: "set is false when int flag is not provided",
+			args: []string{},
+			cFlags: []Flag{
+				IntFlag("intF", 'f', nil),
+			},
+			wantFlagSet: map[string]bool{
+				"intF": false,
+			},
+		},
+		{
+			name: "set is true when float flag provided",
+			args: []string{"-f", "-1.2"},
+			cFlags: []Flag{
+				FloatFlag("flF", 'f', nil),
+			},
+			wantFlagSet: map[string]bool{
+				"flF": true,
+			},
+		},
+		{
+			name: "set is false when float flag is not provided",
+			args: []string{},
+			cFlags: []Flag{
+				FloatFlag("flF", 'f', nil),
+			},
+			wantFlagSet: map[string]bool{
+				"flF": false,
+			},
+		},
+		{
+			name: "set is true when bool flag provided",
+			args: []string{"-f"},
+			cFlags: []Flag{
+				BoolFlag("bF", 'f'),
+			},
+			wantFlagSet: map[string]bool{
+				"bF": true,
+			},
+		},
+		{
+			name: "set is false when bool flag is not provided",
+			args: []string{},
+			cFlags: []Flag{
+				BoolFlag("bF", 'f'),
+			},
+			wantFlagSet: map[string]bool{
+				"bF": false,
+			},
+		},
+		{
+			name: "set is true when string list flag provided",
+			args: []string{"-f", "one", "two", "three-four"},
+			cFlags: []Flag{
+				StringListFlag("slF", 'f', 0, 5, nil),
+			},
+			wantFlagSet: map[string]bool{
+				"slF": true,
+			},
+		},
+		{
+			name: "set is false when string list flag not provided",
+			args: []string{},
+			cFlags: []Flag{
+				StringListFlag("slF", 'f', 0, 3, nil),
+			},
+			wantFlagSet: map[string]bool{
+				"slF": false,
+			},
+		},
+		{
+			name: "set is true when int list flag provided",
+			args: []string{"-f", "12", "34"},
+			cFlags: []Flag{
+				IntListFlag("ilF", 'f', 0, 3, nil),
+			},
+			wantFlagSet: map[string]bool{
+				"ilF": true,
+			},
+		},
+		{
+			name: "set is false when int list flag not provided",
+			args: []string{},
+			cFlags: []Flag{
+				IntListFlag("ilF", 'f', 0, 3, nil),
+			},
+			wantFlagSet: map[string]bool{
+				"ilF": false,
+			},
+		},
+		{
+			name: "set is true when float list flag provided",
+			args: []string{"-f", "-1.2", "0.34"},
+			cFlags: []Flag{
+				FloatListFlag("flF", 'f', 0, 3, nil),
+			},
+			wantFlagSet: map[string]bool{
+				"flF": true,
+			},
+		},
+		{
+			name: "set is false when float list flag not provided",
+			args: []string{},
+			cFlags: []Flag{
+				FloatListFlag("flF", 'f', 0, 3, nil),
+			},
+			wantFlagSet: map[string]bool{
+				"flF": false,
+			},
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			gotArgsSet := map[string]bool{}
+			gotFlagsSet := map[string]bool{}
+			ex := func(cos CommandOS, args, flags map[string]*Value, _ *OptionInfo) (*ExecutorResponse, bool) {
+				for _, a := range test.cArgs {
+					gotArgsSet[a.Name()] = args[a.Name()].GetSet()
+				}
+				for _, f := range test.cFlags {
+					gotFlagsSet[f.Name()] = flags[f.Name()].GetSet()
+				}
+				return nil, true
+			}
+
+			c := &TerminusCommand{
+				Executor: ex,
+				Args:     test.cArgs,
+				Flags:    test.cFlags,
+			}
+			tcos := &TestCommandOS{}
+			if _, ok := Execute(tcos, c, test.args, nil); !ok {
+				t.Fatalf("commands.Execute(%s) failed: %v", test.args, tcos)
+			}
+
+			if len(gotArgsSet) == 0 {
+				gotArgsSet = nil
+			}
+			if len(gotFlagsSet) == 0 {
+				gotFlagsSet = nil
+			}
+			if diff := cmp.Diff(test.wantArgSet, gotArgsSet); diff != "" {
+				t.Errorf("commands.Execute(%v) had improperly set args: \n%s", test.args, diff)
+			}
+			if diff := cmp.Diff(test.wantFlagSet, gotFlagsSet); diff != "" {
+				t.Errorf("commands.Execute(%v) had improperly set flags: \n%s", test.args, diff)
+			}
+		})
+	}
+}
+
 func branchCommand(executor Executor, completor *Completor, opts ...ArgOpt) Command {
 	return &CommandBranch{
 		Subcommands: map[string]Command{
@@ -296,7 +636,7 @@ func TestExecute(t *testing.T) {
 		},
 		{
 			name: "fails when CommandBranch defines executor fails",
-			ex: func(cos CommandOS, args map[string]*Value, flags map[string]*Value, _ *OptionInfo) (*ExecutorResponse, bool) {
+			ex: func(cos CommandOS, args, flags map[string]*Value, _ *OptionInfo) (*ExecutorResponse, bool) {
 				cos.Stderr("bad news bears")
 				return nil, false
 			},

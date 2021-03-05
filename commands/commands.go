@@ -454,9 +454,6 @@ func (tc *TerminusCommand) Execute(cos CommandOS, args []string, oi *OptionInfo)
 	for ; argIdx < len(tc.Args) && tc.Args[argIdx].Optional(); argIdx++ {
 	}
 
-	fmt.Println("pop args", populatedArgs)
-	fmt.Println("flag vals", flagValues)
-
 	if argIdx != len(tc.Args) {
 		nextArg := tc.Args[argIdx]
 		cos.Stderr("no argument provided for %q", nextArg.Name())

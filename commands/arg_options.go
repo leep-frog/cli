@@ -207,6 +207,7 @@ func stringList(s ...string) *Value {
 				List: s,
 			},
 		},
+		Set: true,
 	}
 }
 
@@ -217,6 +218,7 @@ func intList(l ...int32) *Value {
 				List: l,
 			},
 		},
+		Set: true,
 	}
 }
 
@@ -227,6 +229,7 @@ func floatList(l ...float32) *Value {
 				List: l,
 			},
 		},
+		Set: true,
 	}
 }
 
@@ -235,6 +238,7 @@ func boolVal(b bool) *Value {
 		Type: &Value_Bool{
 			Bool: b,
 		},
+		Set: true,
 	}
 }
 
@@ -243,6 +247,7 @@ func stringVal(s string) *Value {
 		Type: &Value_String_{
 			String_: s,
 		},
+		Set: true,
 	}
 }
 
@@ -251,6 +256,7 @@ func intVal(i int32) *Value {
 		Type: &Value_Int{
 			Int: i,
 		},
+		Set: true,
 	}
 }
 
@@ -259,5 +265,6 @@ func floatVal(f float32) *Value {
 		Type: &Value_Float{
 			Float: f,
 		},
+		Set: true,
 	}
 }
