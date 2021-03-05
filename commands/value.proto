@@ -4,16 +4,15 @@ package commands;
 option go_package = "commands";
 
 message Value {
-  bool set = 1;
   oneof type {
-    string string = 2;
-    int32 int = 3;
-    float float = 4;
-    bool bool = 5;
+    string string = 1;
+    int32 int = 2;
+    float float = 3;
+    bool bool = 4;
 
-    StringList string_list = 6;
-    IntList int_list = 7;
-    FloatList float_list = 8;
+    StringList string_list = 5;
+    IntList int_list = 6;
+    FloatList float_list = 7;
   }
 }
 
