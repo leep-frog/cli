@@ -1,5 +1,10 @@
 package commands
 
+import (
+	"fmt"
+	"strings"
+)
+
 type ValueType int
 
 const (
@@ -11,6 +16,9 @@ const (
 	FloatType
 	FloatListType
 	BoolType
+
+	floatFmt = "%.2f"
+	intFmt   = "%d"
 )
 
 var (
@@ -40,6 +48,46 @@ func (v *Value) IsType(vt ValueType) bool {
 		return vt == FloatListType
 	}
 	return false
+}
+
+func (v *Value) Str() string {
+	switch v.Type.(type) {
+	case *Value_String_:
+		return v.GetString_()
+	case *Value_Int:
+		return fmt.Sprintf(intFmt, v.GetInt())
+	case *Value_Float:
+		return fmt.Sprintf(floatFmt, v.GetFloat())
+	case *Value_Bool:
+		if v.GetBool() {
+			return "true"
+		}
+		return "false"
+	case *Value_StringList:
+		return strings.Join(v.GetStringList().GetList(), ", ")
+	case *Value_IntList:
+		return intSliceToString(v.GetIntList().GetList())
+	case *Value_FloatList:
+		return floatSliceToString(v.GetFloatList().GetList())
+	}
+	// Unreachable
+	return "UNKNOWN"
+}
+
+func intSliceToString(is []int32) string {
+	ss := make([]string, 0, len(is))
+	for _, i := range is {
+		ss = append(ss, fmt.Sprintf("%d", i))
+	}
+	return strings.Join(ss, ", ")
+}
+
+func floatSliceToString(fs []float32) string {
+	ss := make([]string, 0, len(fs))
+	for _, f := range fs {
+		ss = append(ss, fmt.Sprintf(floatFmt, f))
+	}
+	return strings.Join(ss, ", ")
 }
 
 func (v *Value) Length() int {

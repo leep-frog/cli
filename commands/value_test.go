@@ -6,38 +6,9 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-func stringP(s string) *string {
-	return &s
-}
-
-func stringListP(sl []string) *[]string {
-	return &sl
-}
-
-func intP(i int) *int {
-	return &i
-}
-
-func intListP(il []int) *[]int {
-	return &il
-}
-
-func floatP(f float64) *float64 {
-	return &f
-}
-
-func floatListP(fl []float64) *[]float64 {
-	return &fl
-}
-
-func boolP(b bool) *bool {
-	return &b
-}
-
 func TestValueCommands(t *testing.T) {
 	for _, test := range []struct {
 		name           string
-		vt             ValueType
 		argDef         Arg
 		args           []string
 		wantString     string
@@ -54,7 +25,6 @@ func TestValueCommands(t *testing.T) {
 	}{
 		{
 			name:       "string is populated",
-			vt:         StringType,
 			argDef:     StringArg("argName", true, nil),
 			args:       []string{"string-val"},
 			wantString: "string-val",
@@ -63,7 +33,6 @@ func TestValueCommands(t *testing.T) {
 		},
 		{
 			name:           "string list is populated",
-			vt:             StringListType,
 			argDef:         StringListArg("argName", 2, 3, nil),
 			args:           []string{"string", "list", "val"},
 			wantStringList: []string{"string", "list", "val"},
@@ -72,7 +41,6 @@ func TestValueCommands(t *testing.T) {
 		},
 		{
 			name:    "int is populated",
-			vt:      IntType,
 			argDef:  IntArg("argName", true, nil),
 			args:    []string{"123"},
 			wantInt: 123,
@@ -81,7 +49,6 @@ func TestValueCommands(t *testing.T) {
 		},
 		{
 			name:        "int list is populated",
-			vt:          IntListType,
 			argDef:      IntListArg("argName", 2, 3, nil),
 			args:        []string{"12", "345", "6"},
 			wantIntList: []int32{12, 345, 6},
@@ -90,7 +57,6 @@ func TestValueCommands(t *testing.T) {
 		},
 		{
 			name:      "flaot is populated",
-			vt:        FloatType,
 			argDef:    FloatArg("argName", true, nil),
 			args:      []string{"12.3"},
 			wantFloat: 12.3,
@@ -99,7 +65,6 @@ func TestValueCommands(t *testing.T) {
 		},
 		{
 			name:          "float list is populated",
-			vt:            FloatListType,
 			argDef:        FloatListArg("argName", 2, 3, nil),
 			args:          []string{"1.2", "-345", ".6"},
 			wantFloatList: []float32{1.2, -345, .6},
@@ -108,7 +73,6 @@ func TestValueCommands(t *testing.T) {
 		},
 		{
 			name:     "bool is populated",
-			vt:       BoolType,
 			argDef:   BoolArg("argName", true),
 			args:     []string{"true"},
 			wantBool: true,
@@ -174,6 +138,67 @@ func TestValueCommands(t *testing.T) {
 			if diff := cmp.Diff(test.wantStderr, tcos.GetStderr()); diff != "" {
 				t.Errorf("command.Execute(%v) produced stderr diff (-want, +got):\n%s", test.args, diff)
 			}
+		})
+	}
+}
+
+func TestStr(t *testing.T) {
+	for _, test := range []struct {
+		name    string
+		v       *Value
+		wantStr string
+	}{
+		{
+			name:    "string value",
+			v:       stringVal("hello there"),
+			wantStr: "hello there",
+		},
+		{
+			name:    "int value",
+			v:       intVal(12),
+			wantStr: "12",
+		},
+		{
+			name:    "float value with extra decimal points",
+			v:       floatVal(123.4567),
+			wantStr: "123.46",
+		},
+		{
+			name:    "float value with no decimal points",
+			v:       floatVal(123),
+			wantStr: "123.00",
+		},
+		{
+			name:    "bool true value",
+			v:       boolVal(true),
+			wantStr: "true",
+		},
+		{
+			name:    "bool false value",
+			v:       boolVal(false),
+			wantStr: "false",
+		},
+		{
+			name:    "string list",
+			v:       stringList("hello", "there"),
+			wantStr: "hello, there",
+		},
+		{
+			name:    "int list",
+			v:       intList(12, -34, 5678),
+			wantStr: "12, -34, 5678",
+		},
+		{
+			name:    "float list",
+			v:       floatList(0.12, -3.4, 567.8910),
+			wantStr: "0.12, -3.40, 567.89",
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			if diff := cmp.Diff(test.wantStr, test.v.Str()); diff != "" {
+				t.Errorf("Value.Str() returned incorrect string (-want, +got):\n%s", diff)
+			}
+
 		})
 	}
 }

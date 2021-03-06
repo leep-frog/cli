@@ -108,6 +108,8 @@ func TestFetchers(t *testing.T) {
 			name: "file fetcher returns files in the current working directory",
 			f:    &FileFetcher{},
 			want: []string{
+				"aliaser.go",
+				"aliaser_test.go",
 				"arg_options.go",
 				"arg_types.go",
 				"commands.go",
