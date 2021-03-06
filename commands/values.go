@@ -1,94 +1,240 @@
 package commands
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
-
-	vpb "github.com/leep-frog/commands/commands/value"
 )
 
 func StringListValue(s ...string) *Value {
-	return &Value{&vpb.Value{
-		Type: &vpb.Value_StringList{
-			StringList: &vpb.StringList{
-				List: s,
-			},
-		},
-		Set: true,
-	}}
+	return &Value{
+		type_:      StringListType,
+		stringList: s,
+		provided:   true,
+	}
 }
 
-func IntListValue(l ...int32) *Value {
-	return &Value{&vpb.Value{
-		Type: &vpb.Value_IntList{
-			IntList: &vpb.IntList{
-				List: l,
-			},
-		},
-		Set: true,
-	}}
+func IntListValue(l ...int) *Value {
+	return &Value{
+		type_:    IntListType,
+		intList:  l,
+		provided: true,
+	}
 }
 
-func FloatListValue(l ...float32) *Value {
-	return &Value{&vpb.Value{
-		Type: &vpb.Value_FloatList{
-			FloatList: &vpb.FloatList{
-				List: l,
-			},
-		},
-		Set: true,
-	}}
+func FloatListValue(l ...float64) *Value {
+	return &Value{
+		type_:     FloatListType,
+		floatList: l,
+		provided:  true,
+	}
 }
 
 func BoolValue(b bool) *Value {
-	return &Value{&vpb.Value{
-		Type: &vpb.Value_Bool{
-			Bool: b,
-		},
-		Set: true,
-	}}
+	return &Value{
+		type_:    BoolType,
+		bool:     &b,
+		provided: true,
+	}
 }
 
 func StringValue(s string) *Value {
-	return &Value{&vpb.Value{
-		Type: &vpb.Value_String_{
-			String_: s,
-		},
-		Set: true,
-	}}
+	return &Value{
+		type_:    StringType,
+		string:   &s,
+		provided: true,
+	}
 }
 
-func IntValue(i int32) *Value {
-	return &Value{&vpb.Value{
-		Type: &vpb.Value_Int{
-			Int: i,
-		},
-		Set: true,
-	}}
+func IntValue(i int) *Value {
+	return &Value{
+		type_:    IntType,
+		int:      &i,
+		provided: true,
+	}
 }
 
-func FloatValue(f float32) *Value {
-	return &Value{&vpb.Value{
-		Type: &vpb.Value_Float{
-			Float: f,
-		},
-		Set: true,
-	}}
+func FloatValue(f float64) *Value {
+	return &Value{
+		type_:    FloatType,
+		float:    &f,
+		provided: true,
+	}
 }
 
 type Value struct {
-	*vpb.Value
+	type_    ValueType
+	provided bool
+
+	string     *string
+	int        *int
+	float      *float64
+	bool       *bool
+	stringList []string
+	intList    []int
+	floatList  []float64
+}
+
+type auxString struct {
+	Type   ValueType
+	String *string
+}
+type auxInt struct {
+	Type ValueType
+	Int  *int
+}
+type auxFloat struct {
+	Type  ValueType
+	Float *float64
+}
+type auxBool struct {
+	Type ValueType
+	Bool *bool
+}
+type auxStringList struct {
+	Type       ValueType
+	StringList []string
+}
+type auxIntList struct {
+	Type    ValueType
+	IntList []int
+}
+type auxFloatList struct {
+	Type      ValueType
+	FloatList []float64
+}
+
+type auxValue struct {
+	Type       ValueType
+	String     *string
+	Int        *int
+	Float      *float64
+	Bool       *bool
+	StringList []string
+	IntList    []int
+	FloatList  []float64
+}
+
+func (v *Value) toAux() *auxValue {
+	return &auxValue{
+		Type:       v.type_,
+		String:     v.string,
+		Int:        v.int,
+		Float:      v.float,
+		Bool:       v.bool,
+		StringList: v.stringList,
+		IntList:    v.intList,
+		FloatList:  v.floatList,
+	}
+}
+
+func (av *auxValue) toVal() *Value {
+	switch av.Type {
+	case StringType:
+		return StringValue(*av.String)
+	case IntType:
+		return IntValue(*av.Int)
+	case FloatType:
+		return FloatValue(*av.Float)
+	case BoolType:
+		return BoolValue(*av.Bool)
+	case StringListType:
+		return StringListValue(av.StringList...)
+	case IntListType:
+		return IntListValue(av.IntList...)
+	case FloatListType:
+		return FloatListValue(av.FloatList...)
+	}
+	return nil
+}
+
+func (v *Value) MarshalJSON() ([]byte, error) {
+	switch v.type_ {
+	case StringType:
+		return json.Marshal(&auxString{v.type_, v.string})
+	case IntType:
+		return json.Marshal(&auxInt{v.type_, v.int})
+	case FloatType:
+		return json.Marshal(&auxFloat{v.type_, v.float})
+	case BoolType:
+		return json.Marshal(&auxBool{v.type_, v.bool})
+	case StringListType:
+		return json.Marshal(&auxStringList{v.type_, v.stringList})
+	case IntListType:
+		return json.Marshal(&auxIntList{v.type_, v.intList})
+	case FloatListType:
+		return json.Marshal(&auxFloatList{v.type_, v.floatList})
+	}
+	return json.Marshal(nil)
+}
+
+func (v *Value) UnmarshalJSON(b []byte) error {
+	av := &auxValue{}
+	err := json.Unmarshal(b, av)
+	if that := av.toVal(); that != nil {
+		*v = *that
+	}
+	return err
 }
 
 func (v *Value) Provided() bool {
-	return v != nil && v.GetSet()
+	return v != nil && v.provided
+}
+
+func (v *Value) String() string {
+	if v == nil || v.string == nil {
+		return ""
+	}
+	return *v.string
+}
+
+func (v *Value) Int() int {
+	if v == nil || v.int == nil {
+		return 0
+	}
+	return *v.int
+}
+
+func (v *Value) Float() float64 {
+	if v == nil || v.float == nil {
+		return 0
+	}
+	return *v.float
+}
+
+func (v *Value) Bool() bool {
+	if v == nil || v.bool == nil {
+		return false
+	}
+	return *v.bool
+}
+
+func (v *Value) StringList() []string {
+	if v == nil {
+		return nil
+	}
+	return v.stringList
+}
+
+func (v *Value) IntList() []int {
+	if v == nil {
+		return nil
+	}
+	return v.intList
+}
+
+func (v *Value) FloatList() []float64 {
+	if v == nil {
+		return nil
+	}
+	return v.floatList
 }
 
 type ValueType int
 
 const (
-	// Default is string list
-	StringListType ValueType = iota
+	UnspecifiedValueType ValueType = iota
+	StringListType                 // ValueType = iota
 	StringType
 	IntType
 	IntListType
@@ -110,50 +256,31 @@ var (
 )
 
 func (v *Value) IsType(vt ValueType) bool {
-	switch v.Type.(type) {
-	case *vpb.Value_String_:
-		return vt == StringType
-	case *vpb.Value_Int:
-		return vt == IntType
-	case *vpb.Value_Float:
-		return vt == FloatType
-	case *vpb.Value_Bool:
-		return vt == BoolType
-	case *vpb.Value_StringList:
-		return vt == StringListType
-	case *vpb.Value_IntList:
-		return vt == IntListType
-	case *vpb.Value_FloatList:
-		return vt == FloatListType
-	}
-	return false
+	return v.type_ == vt
 }
 
 func (v *Value) Str() string {
-	switch v.Type.(type) {
-	case *vpb.Value_String_:
-		return v.GetString_()
-	case *vpb.Value_Int:
-		return fmt.Sprintf(intFmt, v.GetInt())
-	case *vpb.Value_Float:
-		return fmt.Sprintf(floatFmt, v.GetFloat())
-	case *vpb.Value_Bool:
-		if v.GetBool() {
-			return "true"
-		}
-		return "false"
-	case *vpb.Value_StringList:
-		return strings.Join(v.GetStringList().GetList(), ", ")
-	case *vpb.Value_IntList:
-		return intSliceToString(v.GetIntList().GetList())
-	case *vpb.Value_FloatList:
-		return floatSliceToString(v.GetFloatList().GetList())
+	switch v.type_ {
+	case StringType:
+		return v.String()
+	case IntType:
+		return fmt.Sprintf(intFmt, v.Int())
+	case FloatType:
+		return fmt.Sprintf(floatFmt, v.Float())
+	case BoolType:
+		return fmt.Sprintf("%v", v.Bool())
+	case StringListType:
+		return strings.Join(v.StringList(), ", ")
+	case IntListType:
+		return intSliceToString(v.IntList())
+	case FloatListType:
+		return floatSliceToString(v.FloatList())
 	}
 	// Unreachable
 	return "UNKNOWN"
 }
 
-func intSliceToString(is []int32) string {
+func intSliceToString(is []int) string {
 	ss := make([]string, 0, len(is))
 	for _, i := range is {
 		ss = append(ss, fmt.Sprintf("%d", i))
@@ -161,7 +288,7 @@ func intSliceToString(is []int32) string {
 	return strings.Join(ss, ", ")
 }
 
-func floatSliceToString(fs []float32) string {
+func floatSliceToString(fs []float64) string {
 	ss := make([]string, 0, len(fs))
 	for _, f := range fs {
 		ss = append(ss, fmt.Sprintf(floatFmt, f))
@@ -169,17 +296,83 @@ func floatSliceToString(fs []float32) string {
 	return strings.Join(ss, ", ")
 }
 
+func (v *Value) Equal(that *Value) bool {
+	if v == nil && that == nil {
+		return true
+	}
+	if v == nil || that == nil {
+		return false
+	}
+	if v.type_ != that.type_ {
+		return false
+	}
+	switch v.type_ {
+	case StringType:
+		return (v.string == nil && that.string == nil) || (v.string != nil && that.string != nil && *v.string == *that.string)
+	case IntType:
+		return (v.int == nil && that.int == nil) || (v.int != nil && that.int != nil && *v.int == *that.int)
+	case FloatType:
+		return (v.float == nil && that.float == nil) || (v.float != nil && that.float != nil && *v.float == *that.float)
+	case BoolType:
+		return (v.bool == nil && that.bool == nil) || (v.bool != nil && that.bool != nil && *v.bool == *that.bool)
+	case StringListType:
+		return strListCmp(v.stringList, that.stringList)
+	case IntListType:
+		return intListCmp(v.intList, that.intList)
+	case FloatListType:
+		return floatListCmp(v.floatList, that.floatList)
+	}
+	// Unreachable
+	return true
+}
+
+func intListCmp(this, that []int) bool {
+	if len(this) != len(that) {
+		return false
+	}
+	for i := range this {
+		if this[i] != that[i] {
+			return false
+		}
+	}
+	return true
+}
+
+func floatListCmp(this, that []float64) bool {
+	if len(this) != len(that) {
+		return false
+	}
+	for i := range this {
+		if this[i] != that[i] {
+			return false
+		}
+	}
+	return true
+}
+
+func strListCmp(this, that []string) bool {
+	if len(this) != len(that) {
+		return false
+	}
+	for i := range this {
+		if this[i] != that[i] {
+			return false
+		}
+	}
+	return true
+}
+
 func (v *Value) Length() int {
-	switch v.Type.(type) {
-	case *vpb.Value_StringList:
-		return len(v.GetStringList().GetList())
-	case *vpb.Value_IntList:
-		return len(v.GetIntList().GetList())
-	case *vpb.Value_FloatList:
-		return len(v.GetFloatList().GetList())
-	case nil:
+	switch v.type_ {
+	case StringListType:
+		return len(v.StringList())
+	case IntListType:
+		return len(v.IntList())
+	case FloatListType:
+		return len(v.FloatList())
+		/*case nil:
 		// The field is not set.
-		return 0
+		return 0*/
 	}
 
 	// The field is set and is a singular.

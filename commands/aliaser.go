@@ -55,7 +55,7 @@ func TestFileAliaser(fakeStat func(s string) (os.FileInfo, error), fakeAbs func(
 }
 
 func (fa *fileAliaser) Validate(cos CommandOS, alias string, value *Value, args, flags map[string]*Value) bool {
-	if _, err := fa.osStat(value.GetString_()); err != nil {
+	if _, err := fa.osStat(value.String()); err != nil {
 		cos.Stderr("file does not exist: %v", err)
 		return false
 	}
@@ -63,9 +63,9 @@ func (fa *fileAliaser) Validate(cos CommandOS, alias string, value *Value, args,
 }
 
 func (fa *fileAliaser) Transform(cos CommandOS, alias string, value *Value, args, flags map[string]*Value) (*Value, bool) {
-	absPath, err := fa.absPath(value.GetString_())
+	absPath, err := fa.absPath(value.String())
 	if err != nil {
-		cos.Stderr("failed to get absolute file path for file %q: %v", value.GetString_(), err)
+		cos.Stderr("failed to get absolute file path for file %q: %v", value.String(), err)
 		return nil, false
 	}
 
@@ -137,7 +137,7 @@ func AliasSubcommands(cli AliasCLI, aliaser Aliaser) map[string]Command {
 
 // GetAlias fetches an existing alias, if it exists.
 func (ac *aliasCommand) GetAlias(cos CommandOS, args, flags map[string]*Value, _ *OptionInfo) (*ExecutorResponse, bool) {
-	alias := args[AliasArg].GetString_()
+	alias := args[AliasArg].String()
 	f, ok := ac.aliasCLI.GetAlias(alias)
 	if !ok {
 		cos.Stderr("Alias %q does not exist", alias)
@@ -149,7 +149,7 @@ func (ac *aliasCommand) GetAlias(cos CommandOS, args, flags map[string]*Value, _
 
 // AddAlias adds an alias.
 func (ac *aliasCommand) AddAlias(cos CommandOS, args, flags map[string]*Value, _ *OptionInfo) (*ExecutorResponse, bool) {
-	alias := args[AliasArg].GetString_()
+	alias := args[AliasArg].String()
 	value := args[ac.aliaser.Arg().Name()]
 
 	if f, ok := ac.aliasCLI.GetAlias(alias); ok {
@@ -173,7 +173,7 @@ func (ac *aliasCommand) AddAlias(cos CommandOS, args, flags map[string]*Value, _
 
 // DeleteAliases deletes an existing alias.
 func (ac *aliasCommand) DeleteAliases(cos CommandOS, args, flags map[string]*Value, _ *OptionInfo) (*ExecutorResponse, bool) {
-	for _, alias := range args[AliasArg].GetStringList().GetList() {
+	for _, alias := range args[AliasArg].StringList() {
 		if _, ok := ac.aliasCLI.GetAlias(alias); !ok {
 			cos.Stderr("alias %q does not exist", alias)
 		} else {
@@ -208,7 +208,7 @@ func (ac *aliasCommand) listAliases() []string {
 
 // SearchAliases searches through existing aliases.
 func (ac *aliasCommand) SearchAliases(cos CommandOS, args, flags map[string]*Value, _ *OptionInfo) (*ExecutorResponse, bool) {
-	searchRegex, err := regexp.Compile(args[RegexpArg].GetString_())
+	searchRegex, err := regexp.Compile(args[RegexpArg].String())
 	if err != nil {
 		cos.Stderr("Invalid regexp: %v", err)
 		return nil, false

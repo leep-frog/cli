@@ -38,9 +38,9 @@ func (ap *argProcessor) Value(rawValue []string) (*Value, error) {
 		if e != nil {
 			err = fmt.Errorf("argument should be an integer: %v", e)
 		}
-		v = IntValue(int32(i))
+		v = IntValue(int(i))
 	case IntListType:
-		var is []int32
+		var is []int
 		for _, rv := range rawValue {
 			i, e := strconv.Atoi(rv)
 			if e != nil {
@@ -49,7 +49,7 @@ func (ap *argProcessor) Value(rawValue []string) (*Value, error) {
 			// TODO: do we want to append the zero value if error or no append at all?
 			// TODO: make whatever we decide is reflected in the float.
 			// Decided to do this because changing messes up Value.Length function
-			is = append(is, int32(i))
+			is = append(is, int(i))
 		}
 		v = IntListValue(is...)
 	case FloatType:
@@ -58,15 +58,15 @@ func (ap *argProcessor) Value(rawValue []string) (*Value, error) {
 			err = fmt.Errorf("argument should be a float: %v", e)
 		}
 
-		v = FloatValue(float32(f))
+		v = FloatValue(float64(f))
 	case FloatListType:
-		var fs []float32
+		var fs []float64
 		for _, rv := range rawValue {
 			f, e := strconv.ParseFloat(rv, 64)
 			if e != nil {
 				err = fmt.Errorf("float required for FloatList argument type: %v", e)
 			}
-			fs = append(fs, float32(f))
+			fs = append(fs, float64(f))
 		}
 		v = FloatListValue(fs...)
 	case BoolType:

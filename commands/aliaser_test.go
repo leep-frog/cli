@@ -8,7 +8,6 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	vpb "github.com/leep-frog/commands/commands/value"
 )
 
 func TestAliaserAutocomplete(t *testing.T) {
@@ -507,8 +506,7 @@ func TestAliasCommandExecution(t *testing.T) {
 			// Only check diff if we are expecting a change.
 			if wantChanged {
 				opts := []cmp.Option{
-					//cmpopts.IgnoreUnexported(aliasCommand{}, genericArgs{}, Value{}, StringList{}, testAliaser{}),
-					cmpopts.IgnoreUnexported(vpb.Value{}, vpb.StringList{}, aliasCommand{}, genericArgs{}, testAliaser{}),
+					cmpopts.IgnoreUnexported(aliasCommand{}, genericArgs{}, testAliaser{}),
 					cmpopts.IgnoreFields(basicCLI{}, "Aliaser", "changed"),
 				}
 				if diff := cmp.Diff(test.want, test.ac, opts...); diff != "" {

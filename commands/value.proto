@@ -6,7 +6,7 @@ option go_package = "commands/value";
 message Value {
   oneof type {
     string string = 1;
-    int32 int = 2;
+    int int = 2;
     float float = 3;
     bool bool = 4;
 
@@ -23,7 +23,7 @@ message StringList {
 }
 
 message IntList {
-  repeated int32 list = 1;
+  repeated int list = 1;
 }
 
 message FloatList {

@@ -3,14 +3,11 @@ package commands
 // TODO: split this up into separate files (not separate packages).
 
 import (
-	"fmt"
 	"sort"
 	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
-	vpb "github.com/leep-frog/commands/commands/value"
 )
 
 func TestUsage(t *testing.T) {
@@ -366,11 +363,7 @@ func TestSet(t *testing.T) {
 			gotArgsSet := map[string]bool{}
 			gotFlagsSet := map[string]bool{}
 			ex := func(cos CommandOS, args, flags map[string]*Value, _ *OptionInfo) (*ExecutorResponse, bool) {
-				fmt.Println("args", args)
 				for _, a := range test.cArgs {
-					fmt.Println("a", a)
-					fmt.Println("name", a.Name())
-					fmt.Println("arr", args[a.Name()])
 					gotArgsSet[a.Name()] = args[a.Name()].Provided()
 				}
 				for _, f := range test.cFlags {
@@ -1038,7 +1031,7 @@ func TestExecute(t *testing.T) {
 			opts: []ArgOpt{
 				IntEQ(123),
 			},
-			wantStderr: []string{"failed to process args: failed to convert value: option can only be bound to arguments with type 2"},
+			wantStderr: []string{"failed to process args: failed to convert value: option can only be bound to arguments with type 3"},
 		},
 		// Contains
 		{
@@ -1623,13 +1616,11 @@ func TestExecute(t *testing.T) {
 				t.Errorf("command.Execute(%v) produced stderr diff (-want, +got):\n%s", test.args, diff)
 			}
 
-			//opt := cmpopts.IgnoreUnexported(Value{}, StringList{}, IntList{}, FloatList{})
-			opt := cmpopts.IgnoreUnexported(Value{}, vpb.Value{}, vpb.StringList{}, vpb.IntList{}, vpb.FloatList{})
-			if diff := cmp.Diff(test.wantExecuteArgs, gotExecuteArgs, opt); diff != "" {
+			if diff := cmp.Diff(test.wantExecuteArgs, gotExecuteArgs); diff != "" {
 				t.Errorf("command.Execute(%v) produced execute args diff (-want, +got):\n%s", test.args, diff)
 			}
 
-			if diff := cmp.Diff(test.wantExecuteFlags, gotExecuteFlags, opt); diff != "" {
+			if diff := cmp.Diff(test.wantExecuteFlags, gotExecuteFlags); diff != "" {
 				t.Errorf("command.Execute(%v) produced execute flags diff (-want, +got):\n%s", test.args, diff)
 			}
 		})
@@ -2635,17 +2626,15 @@ func TestAutocomplete(t *testing.T) {
 				t.Errorf("command.Autocomplete(%v, %d) returned diff (-want, +got):\n%s", test.args, test.cursorIdx, diff)
 			}
 
-			//opt := cmpopts.IgnoreUnexported(Value{})
-			opt := cmpopts.IgnoreUnexported(Value{}, vpb.Value{}, vpb.StringList{}, vpb.IntList{}, vpb.FloatList{})
-			if diff := cmp.Diff(test.wantCompleteArgs, fetcher.gotArgs, opt); diff != "" {
+			if diff := cmp.Diff(test.wantCompleteArgs, fetcher.gotArgs); diff != "" {
 				t.Errorf("command.Autocomplete(%v, %d) produced complete args diff (-want +got):\n%s", test.args, test.cursorIdx, diff)
 			}
 
-			if diff := cmp.Diff(test.wantCompleteFlags, fetcher.gotFlags, opt); diff != "" {
+			if diff := cmp.Diff(test.wantCompleteFlags, fetcher.gotFlags); diff != "" {
 				t.Errorf("command.Autocomplete(%v, %d) produced complete flags diff (-want +got):\n%s", test.args, test.cursorIdx, diff)
 			}
 
-			if diff := cmp.Diff(test.wantValue, fetcher.gotValue, opt); diff != "" {
+			if diff := cmp.Diff(test.wantValue, fetcher.gotValue); diff != "" {
 				t.Errorf("command.Autocomplete(%v, %d) produced values diff (-want +got):\n%s", test.args, test.cursorIdx, diff)
 			}
 		})

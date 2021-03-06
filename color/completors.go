@@ -30,7 +30,7 @@ func ApplyCodes(f *Format, args map[string]*commands.Value) (*Format, bool) {
 	if f == nil {
 		f = &Format{}
 	}
-	codes := args[ArgName].GetStringList().GetList()
+	codes := args[ArgName].StringList()
 	for _, c := range codes {
 		f.AddAttribute(c)
 	}
