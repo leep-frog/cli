@@ -138,10 +138,6 @@ func TestAliasCommandExecution(t *testing.T) {
 		wantResp   *ExecutorResponse
 		wantStdout []string
 		wantStderr []string
-		osStatErr  error
-		osStatInfo os.FileInfo
-		abs        string
-		absErr     error
 	}{
 		{
 			name: "subcommand argument required",
@@ -449,10 +445,9 @@ func TestAliasCommandExecution(t *testing.T) {
 		{
 			name: "FileAliaser fails if stat error in validate",
 			ac: &basicCLI{
-				Aliaser: NewFileAliaser(),
+				Aliaser: TestFileAliaser(errStat(fmt.Errorf("oops")), nil),
 			},
-			args:      []string{"a", "shortcut", "the-low-road"},
-			osStatErr: fmt.Errorf("oops"),
+			args: []string{"a", "shortcut", "the-low-road"},
 			wantStderr: []string{
 				"file does not exist: oops",
 			},
@@ -460,11 +455,9 @@ func TestAliasCommandExecution(t *testing.T) {
 		{
 			name: "FileAliaser fails if filepathAbs error in transform",
 			ac: &basicCLI{
-				Aliaser: NewFileAliaser(),
+				Aliaser: TestFileAliaser(fileStat, absFunc("", fmt.Errorf("absolutely not"))),
 			},
-			args:       []string{"a", "shortcut", "the-low-road"},
-			osStatInfo: file(),
-			absErr:     fmt.Errorf("absolutely not"),
+			args: []string{"a", "shortcut", "the-low-road"},
 			wantStderr: []string{
 				`failed to get absolute file path for file "the-low-road": absolutely not`,
 			},
@@ -472,12 +465,10 @@ func TestAliasCommandExecution(t *testing.T) {
 		{
 			name: "FileAliaser adds file alias",
 			ac: &basicCLI{
-				Aliaser: NewFileAliaser(),
+				Aliaser: TestFileAliaser(fileStat, absFunc("scotland/the-low-road", nil)),
 			},
-			args:       []string{"a", "shortcut", "the-low-road"},
-			osStatInfo: file(),
-			abs:        "scotland/the-low-road",
-			wantOK:     true,
+			args:   []string{"a", "shortcut", "the-low-road"},
+			wantOK: true,
 			want: &basicCLI{
 				Aliases: map[string]*Value{
 					"shortcut": stringVal("scotland/the-low-road"),
@@ -486,14 +477,6 @@ func TestAliasCommandExecution(t *testing.T) {
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			oldStat := osStat
-			osStat = func(_ string) (os.FileInfo, error) { return test.osStatInfo, test.osStatErr }
-			defer func() { osStat = oldStat }()
-
-			oldAbs := filepathAbs
-			filepathAbs = func(_ string) (string, error) { return test.abs, test.absErr }
-			defer func() { filepathAbs = oldAbs }()
-
 			if test.ac.Aliaser == nil {
 				test.ac.Aliaser = &testAliaser{}
 			}
@@ -534,12 +517,25 @@ func TestAliasCommandExecution(t *testing.T) {
 	}
 }
 
-func file() os.FileInfo {
-	return &fakeFileInfo{mode: 0}
+var (
+	fileStat = func(_ string) (os.FileInfo, error) {
+		return &fakeFileInfo{mode: 0}, nil
+	}
+	dirStat = func(_ string) (os.FileInfo, error) {
+		return &fakeFileInfo{mode: os.ModeDir}, nil
+	}
+)
+
+func errStat(err error) func(string) (os.FileInfo, error) {
+	return func(_ string) (os.FileInfo, error) {
+		return nil, err
+	}
 }
 
-func directory() os.FileInfo {
-	return &fakeFileInfo{mode: os.ModeDir}
+func absFunc(s string, err error) func(string) (string, error) {
+	return func(_ string) (string, error) {
+		return s, err
+	}
 }
 
 type fakeFileInfo struct{ mode os.FileMode }

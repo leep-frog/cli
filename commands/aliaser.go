@@ -3,6 +3,7 @@ package commands
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"regexp"
 	"sort"
 )
@@ -11,10 +12,6 @@ const (
 	AliasArg  = "ALIAS"
 	RegexpArg = "REGEXP"
 	FileArg   = "FILE"
-)
-
-var (
-	osStat = os.Stat
 )
 
 type Aliaser interface {
@@ -38,22 +35,35 @@ type aliasCommand struct {
 	aliasCLI AliasCLI
 }
 
-type fileAliaser struct{}
-
-func NewFileAliaser() Aliaser {
-	return &fileAliaser{}
+type fileAliaser struct {
+	osStat  func(s string) (os.FileInfo, error)
+	absPath func(s string) (string, error)
 }
 
-func (*fileAliaser) Validate(cos CommandOS, alias string, value *Value, args, flags map[string]*Value) bool {
-	if _, err := osStat(value.GetString_()); err != nil {
+func NewFileAliaser() Aliaser {
+	return &fileAliaser{
+		osStat:  os.Stat,
+		absPath: filepath.Abs,
+	}
+}
+
+func TestFileAliaser(fakeStat func(s string) (os.FileInfo, error), fakeAbs func(s string) (string, error)) Aliaser {
+	return &fileAliaser{
+		osStat:  fakeStat,
+		absPath: fakeAbs,
+	}
+}
+
+func (fa *fileAliaser) Validate(cos CommandOS, alias string, value *Value, args, flags map[string]*Value) bool {
+	if _, err := fa.osStat(value.GetString_()); err != nil {
 		cos.Stderr("file does not exist: %v", err)
 		return false
 	}
 	return true
 }
 
-func (*fileAliaser) Transform(cos CommandOS, alias string, value *Value, args, flags map[string]*Value) (*Value, bool) {
-	absPath, err := filepathAbs(value.GetString_())
+func (fa *fileAliaser) Transform(cos CommandOS, alias string, value *Value, args, flags map[string]*Value) (*Value, bool) {
+	absPath, err := fa.absPath(value.GetString_())
 	if err != nil {
 		cos.Stderr("failed to get absolute file path for file %q: %v", value.GetString_(), err)
 		return nil, false
