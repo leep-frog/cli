@@ -332,6 +332,13 @@ func TestValueEqualAndJSONMarshaling(t *testing.T) {
 			wantThatJSON: `{"Type":1,"StringList":["a","bc","d"]}`,
 		},
 		{
+			name:         "different string list",
+			this:         StringListValue("a", "bc", "def"),
+			that:         StringListValue("a", "bc", "d"),
+			wantThisJSON: `{"Type":1,"StringList":["a","bc","def"]}`,
+			wantThatJSON: `{"Type":1,"StringList":["a","bc","d"]}`,
+		},
+		{
 			name:         "unequal populated string list",
 			this:         StringListValue("a", "bc", "d"),
 			that:         StringListValue("a", "bc"),
@@ -362,6 +369,13 @@ func TestValueEqualAndJSONMarshaling(t *testing.T) {
 			wantThatJSON: `{"Type":4,"IntList":[1,-23,456]}`,
 		},
 		{
+			name:         "different int list",
+			this:         IntListValue(1, -23, 789),
+			that:         IntListValue(1, -23, 456),
+			wantThisJSON: `{"Type":4,"IntList":[1,-23,789]}`,
+			wantThatJSON: `{"Type":4,"IntList":[1,-23,456]}`,
+		},
+		{
 			name:         "unequal populated int list",
 			this:         IntListValue(1, -23, 456),
 			that:         IntListValue(1, -23),
@@ -389,6 +403,13 @@ func TestValueEqualAndJSONMarshaling(t *testing.T) {
 			that:         FloatListValue(1, -2.3, 0.456),
 			want:         true,
 			wantThisJSON: `{"Type":6,"FloatList":[1,-2.3,0.456]}`,
+			wantThatJSON: `{"Type":6,"FloatList":[1,-2.3,0.456]}`,
+		},
+		{
+			name:         "different float list",
+			this:         FloatListValue(1, -2.3, 45.6),
+			that:         FloatListValue(1, -2.3, 0.456),
+			wantThisJSON: `{"Type":6,"FloatList":[1,-2.3,45.6]}`,
 			wantThatJSON: `{"Type":6,"FloatList":[1,-2.3,0.456]}`,
 		},
 		{
