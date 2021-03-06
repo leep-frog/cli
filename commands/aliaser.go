@@ -10,6 +10,7 @@ import (
 const (
 	AliasArg  = "ALIAS"
 	RegexpArg = "REGEXP"
+	FileArg   = "FILE"
 )
 
 var (
@@ -33,30 +34,36 @@ type AliasCommand struct {
 	changed bool
 }
 
-/*func FileVerifier(cos CommandOS, alias string, value *Value, args, flags map[string]*Value) bool {
-	if !value.IsType(StringType) {
-		cos.Stderr("file verifier requires a string type")
-		return false
-	}
+type fileAliaser struct{}
 
+func NewFileAliaser() Aliaser {
+	return &fileAliaser{}
+}
+
+func (*fileAliaser) Validate(cos CommandOS, alias string, value *Value, args, flags map[string]*Value) bool {
 	if _, err := osStat(value.GetString_()); err != nil {
 		cos.Stderr("file does not exist: %v", err)
 		return false
 	}
-
 	return true
 }
 
-func FileTransformer(cos CommandOS, alias string, value *Value, args, flags map[string]*Value) (*Value, bool) {
+func (*fileAliaser) Transform(cos CommandOS, alias string, value *Value, args, flags map[string]*Value) (*Value, bool) {
 	absPath, err := filepathAbs(value.GetString_())
 	if err != nil {
-		cos.Stderr("failed to get absolute file path for file %q: %v", filename, err)
-		return false
+		cos.Stderr("failed to get absolute file path for file %q: %v", value.GetString_(), err)
+		return nil, false
 	}
 
-	return stringVal(absPath)
-	return nil, false
-}*/
+	return stringVal(absPath), true
+}
+
+func (*fileAliaser) Arg() Arg {
+	completor := &Completor{
+		SuggestionFetcher: &FileFetcher{},
+	}
+	return StringArg(FileArg, true, completor)
+}
 
 type AliasFetcher struct {
 	ac *AliasCommand
