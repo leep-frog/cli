@@ -26,12 +26,16 @@ type Aliaser interface {
 	Arg() Arg
 }
 
-type AliasCommand struct {
-	Aliaser Aliaser
+type AliasCLI interface {
+	GetAlias(string) (*Value, bool)
+	SetAlias(string, *Value)
+	DeleteAlias(string)
+	AllAliases() []string
+}
 
-	Aliases map[string]*Value
-
-	changed bool
+type aliasCommand struct {
+	aliaser  Aliaser
+	aliasCLI AliasCLI
 }
 
 type fileAliaser struct{}
@@ -66,16 +70,12 @@ func (*fileAliaser) Arg() Arg {
 }
 
 type AliasFetcher struct {
-	ac *AliasCommand
-}
-
-func (ac *AliasCommand) Changed() bool {
-	return ac.changed
+	ac *aliasCommand
 }
 
 func (af *AliasFetcher) Fetch(value *Value, args, flags map[string]*Value) *Completion {
-	suggestions := make([]string, 0, len(af.ac.Aliases))
-	for k := range af.ac.Aliases {
+	suggestions := make([]string, 0, len(af.ac.aliasCLI.AllAliases()))
+	for _, k := range af.ac.aliasCLI.AllAliases() {
 		suggestions = append(suggestions, k)
 	}
 	return &Completion{
@@ -83,7 +83,11 @@ func (af *AliasFetcher) Fetch(value *Value, args, flags map[string]*Value) *Comp
 	}
 }
 
-func (ac *AliasCommand) Subcommands() map[string]Command {
+func AliasSubcommands(cli AliasCLI, aliaser Aliaser) map[string]Command {
+	ac := &aliasCommand{
+		aliasCLI: cli,
+		aliaser:  aliaser,
+	}
 	aliasCompletor := &Completor{
 		SuggestionFetcher: &AliasFetcher{ac: ac},
 		Distinct:          true,
@@ -94,7 +98,7 @@ func (ac *AliasCommand) Subcommands() map[string]Command {
 			Executor: ac.AddAlias,
 			Args: []Arg{
 				StringArg(AliasArg, true, nil),
-				ac.Aliaser.Arg(),
+				ac.aliaser.Arg(),
 			},
 		},
 		"d": &TerminusCommand{
@@ -121,16 +125,10 @@ func (ac *AliasCommand) Subcommands() map[string]Command {
 	}
 }
 
-func (ac *AliasCommand) Command() Command {
-	return &CommandBranch{
-		Subcommands: ac.Subcommands(),
-	}
-}
-
 // GetAlias fetches an existing alias, if it exists.
-func (ac *AliasCommand) GetAlias(cos CommandOS, args, flags map[string]*Value, _ *OptionInfo) (*ExecutorResponse, bool) {
+func (ac *aliasCommand) GetAlias(cos CommandOS, args, flags map[string]*Value, _ *OptionInfo) (*ExecutorResponse, bool) {
 	alias := args[AliasArg].GetString_()
-	f, ok := ac.Aliases[alias]
+	f, ok := ac.aliasCLI.GetAlias(alias)
 	if !ok {
 		cos.Stderr("Alias %q does not exist", alias)
 		return nil, false
@@ -140,71 +138,66 @@ func (ac *AliasCommand) GetAlias(cos CommandOS, args, flags map[string]*Value, _
 }
 
 // AddAlias adds an alias.
-func (ac *AliasCommand) AddAlias(cos CommandOS, args, flags map[string]*Value, _ *OptionInfo) (*ExecutorResponse, bool) {
+func (ac *aliasCommand) AddAlias(cos CommandOS, args, flags map[string]*Value, _ *OptionInfo) (*ExecutorResponse, bool) {
 	alias := args[AliasArg].GetString_()
-	value := args[ac.Aliaser.Arg().Name()]
+	value := args[ac.aliaser.Arg().Name()]
 
-	if f, ok := ac.Aliases[alias]; ok {
+	if f, ok := ac.aliasCLI.GetAlias(alias); ok {
 		cos.Stderr("alias already defined: (%s: %s)", alias, f.Str())
 		return nil, false
 	}
 
 	// Verify the alias.
-	if !ac.Aliaser.Validate(cos, alias, value, args, flags) {
+	if !ac.aliaser.Validate(cos, alias, value, args, flags) {
 		return nil, false
 	}
 
 	var ok bool
-	if value, ok = ac.Aliaser.Transform(cos, alias, value, args, flags); !ok {
+	if value, ok = ac.aliaser.Transform(cos, alias, value, args, flags); !ok {
 		return nil, false
 	}
 
-	if ac.Aliases == nil {
-		ac.Aliases = map[string]*Value{}
-	}
-
-	ac.Aliases[alias] = value
-	ac.changed = true
+	ac.aliasCLI.SetAlias(alias, value)
 	return nil, true
 }
 
 // DeleteAliases deletes an existing alias.
-func (ac *AliasCommand) DeleteAliases(cos CommandOS, args, flags map[string]*Value, _ *OptionInfo) (*ExecutorResponse, bool) {
+func (ac *aliasCommand) DeleteAliases(cos CommandOS, args, flags map[string]*Value, _ *OptionInfo) (*ExecutorResponse, bool) {
 	for _, alias := range args[AliasArg].GetStringList().GetList() {
-		if _, ok := ac.Aliases[alias]; !ok {
+		if _, ok := ac.aliasCLI.GetAlias(alias); !ok {
 			cos.Stderr("alias %q does not exist", alias)
 		} else {
-			delete(ac.Aliases, alias)
-			ac.changed = true
+			ac.aliasCLI.DeleteAlias(alias)
 		}
 	}
 	return nil, true
 }
 
 // ListAliases removes an existing alias.
-func (ac *AliasCommand) ListAliases(cos CommandOS, _, _ map[string]*Value, _ *OptionInfo) (*ExecutorResponse, bool) {
+func (ac *aliasCommand) ListAliases(cos CommandOS, _, _ map[string]*Value, _ *OptionInfo) (*ExecutorResponse, bool) {
 	for _, aliasStr := range ac.listAliases() {
 		cos.Stdout(aliasStr)
 	}
 	return nil, true
 }
 
-func (ac *AliasCommand) listAliases() []string {
-	keys := make([]string, 0, len(ac.Aliases))
-	for k := range ac.Aliases {
+func (ac *aliasCommand) listAliases() []string {
+	keys := make([]string, 0, len(ac.aliasCLI.AllAliases()))
+	for _, k := range ac.aliasCLI.AllAliases() {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
 
 	vs := make([]string, 0, len(keys))
 	for _, k := range keys {
-		vs = append(vs, fmt.Sprintf("%s: %s", k, ac.Aliases[k].Str()))
+		v, _ := ac.aliasCLI.GetAlias(k)
+		vs = append(vs, fmt.Sprintf("%s: %s", k, v.Str()))
 	}
 	return vs
 }
 
 // SearchAliases searches through existing aliases.
-func (ac *AliasCommand) SearchAliases(cos CommandOS, args, flags map[string]*Value, _ *OptionInfo) (*ExecutorResponse, bool) {
+func (ac *aliasCommand) SearchAliases(cos CommandOS, args, flags map[string]*Value, _ *OptionInfo) (*ExecutorResponse, bool) {
 	searchRegex, err := regexp.Compile(args[RegexpArg].GetString_())
 	if err != nil {
 		cos.Stderr("Invalid regexp: %v", err)
