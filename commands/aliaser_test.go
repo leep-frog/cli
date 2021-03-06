@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	vpb "github.com/leep-frog/commands/commands/value"
 )
 
 func TestAliaserAutocomplete(t *testing.T) {
@@ -27,10 +28,10 @@ func TestAliaserAutocomplete(t *testing.T) {
 			name: "DeleteAlias suggests aliases",
 			ac: &basicCLI{
 				Aliases: map[string]*Value{
-					"aliasOne":   boolVal(true),
-					"aliasTwo":   boolVal(true),
-					"aliasThree": boolVal(true),
-					"aliasFour":  boolVal(true),
+					"aliasOne":   BoolValue(true),
+					"aliasTwo":   BoolValue(true),
+					"aliasThree": BoolValue(true),
+					"aliasFour":  BoolValue(true),
 				},
 			},
 			args: []string{"d", ""},
@@ -45,10 +46,10 @@ func TestAliaserAutocomplete(t *testing.T) {
 			name: "DeleteAlias suggests unique aliases",
 			ac: &basicCLI{
 				Aliases: map[string]*Value{
-					"aliasOne":   boolVal(true),
-					"aliasTwo":   boolVal(true),
-					"aliasThree": boolVal(true),
-					"aliasFour":  boolVal(true),
+					"aliasOne":   BoolValue(true),
+					"aliasTwo":   BoolValue(true),
+					"aliasThree": BoolValue(true),
+					"aliasFour":  BoolValue(true),
 				},
 			},
 			args: []string{"d", "aliasFour", "missing", "aliasTwo", "ali"},
@@ -62,10 +63,10 @@ func TestAliaserAutocomplete(t *testing.T) {
 			name: "GetAlias suggests aliases",
 			ac: &basicCLI{
 				Aliases: map[string]*Value{
-					"aliasOne":   boolVal(true),
-					"aliasTwo":   boolVal(true),
-					"aliasThree": boolVal(true),
-					"aliasFour":  boolVal(true),
+					"aliasOne":   BoolValue(true),
+					"aliasTwo":   BoolValue(true),
+					"aliasThree": BoolValue(true),
+					"aliasFour":  BoolValue(true),
 				},
 			},
 			args: []string{"g", ""},
@@ -80,10 +81,10 @@ func TestAliaserAutocomplete(t *testing.T) {
 			name: "GetAlias completes alias",
 			ac: &basicCLI{
 				Aliases: map[string]*Value{
-					"aliasOne":   boolVal(true),
-					"aliasTwo":   boolVal(true),
-					"aliasThree": boolVal(true),
-					"aliasFour":  boolVal(true),
+					"aliasOne":   BoolValue(true),
+					"aliasTwo":   BoolValue(true),
+					"aliasThree": BoolValue(true),
+					"aliasFour":  BoolValue(true),
 				},
 			},
 			args: []string{"g", "aliasF"},
@@ -182,7 +183,7 @@ func TestAliasCommandExecution(t *testing.T) {
 					arg: StringArg("str", true, nil),
 				},
 				Aliases: map[string]*Value{
-					"salt": stringVal("NaCl"),
+					"salt": StringValue("NaCl"),
 				},
 			},
 			args: []string{"a", "salt", "sodiumChloride"},
@@ -201,7 +202,7 @@ func TestAliasCommandExecution(t *testing.T) {
 			wantOK: true,
 			want: &basicCLI{
 				Aliases: map[string]*Value{
-					"salt": stringVal("NaCl"),
+					"salt": StringValue("NaCl"),
 				},
 			},
 		},
@@ -212,15 +213,15 @@ func TestAliasCommandExecution(t *testing.T) {
 					arg: StringArg("str", true, nil),
 				},
 				Aliases: map[string]*Value{
-					"breakfast": stringList("green", "eggs", "and", "ham"),
+					"breakfast": StringListValue("green", "eggs", "and", "ham"),
 				},
 			},
 			args:   []string{"a", "salt", "NaCl"},
 			wantOK: true,
 			want: &basicCLI{
 				Aliases: map[string]*Value{
-					"breakfast": stringList("green", "eggs", "and", "ham"),
-					"salt":      stringVal("NaCl"),
+					"breakfast": StringListValue("green", "eggs", "and", "ham"),
+					"salt":      StringValue("NaCl"),
 				},
 			},
 		},
@@ -258,7 +259,7 @@ func TestAliasCommandExecution(t *testing.T) {
 			},
 			want: &basicCLI{
 				Aliases: map[string]*Value{
-					"salt": stringVal("NaCl"),
+					"salt": StringValue("NaCl"),
 				},
 			},
 		},
@@ -284,7 +285,7 @@ func TestAliasCommandExecution(t *testing.T) {
 				Aliaser: &testAliaser{
 					arg: StringArg("str", true, nil),
 					transform: func(cos CommandOS, alias string, value *Value, args, flags map[string]*Value) (*Value, bool) {
-						return stringList("Na", "Cl"), true
+						return StringListValue("Na", "Cl"), true
 					},
 				},
 			},
@@ -292,7 +293,7 @@ func TestAliasCommandExecution(t *testing.T) {
 			wantOK: true,
 			want: &basicCLI{
 				Aliases: map[string]*Value{
-					"salt": stringList("Na", "Cl"),
+					"salt": StringListValue("Na", "Cl"),
 				},
 			},
 		},
@@ -309,7 +310,7 @@ func TestAliasCommandExecution(t *testing.T) {
 			name: "DeleteAlias handles nonexistent aliases",
 			ac: &basicCLI{
 				Aliases: map[string]*Value{
-					"salt": stringList("Na", "Cl"),
+					"salt": StringListValue("Na", "Cl"),
 				},
 			},
 			args:   []string{"d", "pepper"},
@@ -322,15 +323,15 @@ func TestAliasCommandExecution(t *testing.T) {
 			name: "DeleteAlias deletes alias",
 			ac: &basicCLI{
 				Aliases: map[string]*Value{
-					"salt":   stringList("Na", "Cl"),
-					"pepper": stringVal("sneezy"),
+					"salt":   StringListValue("Na", "Cl"),
+					"pepper": StringValue("sneezy"),
 				},
 			},
 			args:   []string{"d", "pepper"},
 			wantOK: true,
 			want: &basicCLI{
 				Aliases: map[string]*Value{
-					"salt": stringList("Na", "Cl"),
+					"salt": StringListValue("Na", "Cl"),
 				},
 			},
 		},
@@ -338,15 +339,15 @@ func TestAliasCommandExecution(t *testing.T) {
 			name: "DeleteAlias handles several args",
 			ac: &basicCLI{
 				Aliases: map[string]*Value{
-					"salt":   stringList("Na", "Cl"),
-					"pepper": stringVal("sneezy"),
+					"salt":   StringListValue("Na", "Cl"),
+					"pepper": StringValue("sneezy"),
 				},
 			},
 			args:   []string{"d", "garlic", "pepper", "other"},
 			wantOK: true,
 			want: &basicCLI{
 				Aliases: map[string]*Value{
-					"salt": stringList("Na", "Cl"),
+					"salt": StringListValue("Na", "Cl"),
 				},
 			},
 			wantStderr: []string{
@@ -375,7 +376,7 @@ func TestAliasCommandExecution(t *testing.T) {
 			name: "GetAlias gets an alias",
 			ac: &basicCLI{
 				Aliases: map[string]*Value{
-					"salt": stringList("Na", "Cl"),
+					"salt": StringListValue("Na", "Cl"),
 				},
 			},
 			wantOK: true,
@@ -389,11 +390,11 @@ func TestAliasCommandExecution(t *testing.T) {
 			name: "ListAliases lists the aliases",
 			ac: &basicCLI{
 				Aliases: map[string]*Value{
-					"salt":    stringList("Na", "Cl"),
-					"pepper":  stringVal("sneezy"),
-					"oregano": boolVal(false),
-					"garlic":  intVal(2468),
-					"curry":   floatVal(-13.57),
+					"salt":    StringListValue("Na", "Cl"),
+					"pepper":  StringValue("sneezy"),
+					"oregano": BoolValue(false),
+					"garlic":  IntValue(2468),
+					"curry":   FloatValue(-13.57),
 				},
 			},
 			args:   []string{"l"},
@@ -427,11 +428,11 @@ func TestAliasCommandExecution(t *testing.T) {
 			name: "SearchAlias works",
 			ac: &basicCLI{
 				Aliases: map[string]*Value{
-					"salt":    stringList("Na", "Cl"),
-					"pepper":  stringVal("sneezy"),
-					"oregano": boolVal(false),
-					"garlic":  intVal(2468),
-					"curry":   floatVal(-13.57),
+					"salt":    StringListValue("Na", "Cl"),
+					"pepper":  StringValue("sneezy"),
+					"oregano": BoolValue(false),
+					"garlic":  IntValue(2468),
+					"curry":   FloatValue(-13.57),
 				},
 			},
 			args:   []string{"s", "^......:"},
@@ -471,7 +472,7 @@ func TestAliasCommandExecution(t *testing.T) {
 			wantOK: true,
 			want: &basicCLI{
 				Aliases: map[string]*Value{
-					"shortcut": stringVal("scotland/the-low-road"),
+					"shortcut": StringValue("scotland/the-low-road"),
 				},
 			},
 		},
@@ -506,7 +507,8 @@ func TestAliasCommandExecution(t *testing.T) {
 			// Only check diff if we are expecting a change.
 			if wantChanged {
 				opts := []cmp.Option{
-					cmpopts.IgnoreUnexported(aliasCommand{}, genericArgs{}, Value{}, StringList{}, testAliaser{}),
+					//cmpopts.IgnoreUnexported(aliasCommand{}, genericArgs{}, Value{}, StringList{}, testAliaser{}),
+					cmpopts.IgnoreUnexported(vpb.Value{}, vpb.StringList{}, aliasCommand{}, genericArgs{}, testAliaser{}),
 					cmpopts.IgnoreFields(basicCLI{}, "Aliaser", "changed"),
 				}
 				if diff := cmp.Diff(test.want, test.ac, opts...); diff != "" {

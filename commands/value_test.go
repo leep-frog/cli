@@ -150,47 +150,47 @@ func TestStr(t *testing.T) {
 	}{
 		{
 			name:    "string value",
-			v:       stringVal("hello there"),
+			v:       StringValue("hello there"),
 			wantStr: "hello there",
 		},
 		{
 			name:    "int value",
-			v:       intVal(12),
+			v:       IntValue(12),
 			wantStr: "12",
 		},
 		{
 			name:    "float value with extra decimal points",
-			v:       floatVal(123.4567),
+			v:       FloatValue(123.4567),
 			wantStr: "123.46",
 		},
 		{
 			name:    "float value with no decimal points",
-			v:       floatVal(123),
+			v:       FloatValue(123),
 			wantStr: "123.00",
 		},
 		{
 			name:    "bool true value",
-			v:       boolVal(true),
+			v:       BoolValue(true),
 			wantStr: "true",
 		},
 		{
 			name:    "bool false value",
-			v:       boolVal(false),
+			v:       BoolValue(false),
 			wantStr: "false",
 		},
 		{
 			name:    "string list",
-			v:       stringList("hello", "there"),
+			v:       StringListValue("hello", "there"),
 			wantStr: "hello, there",
 		},
 		{
 			name:    "int list",
-			v:       intList(12, -34, 5678),
+			v:       IntListValue(12, -34, 5678),
 			wantStr: "12, -34, 5678",
 		},
 		{
 			name:    "float list",
-			v:       floatList(0.12, -3.4, 567.8910),
+			v:       FloatListValue(0.12, -3.4, 567.8910),
 			wantStr: "0.12, -3.40, 567.89",
 		},
 	} {

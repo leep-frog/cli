@@ -30,32 +30,15 @@ func (ap *argProcessor) Value(rawValue []string) (*Value, error) {
 	var err error
 	switch ap.ValueType {
 	case StringType:
-		v = &Value{
-			Type: &Value_String_{
-				String_: rawValue[0],
-			},
-			Set: true,
-		}
+		v = StringValue(rawValue[0])
 	case StringListType:
-		v = &Value{
-			Type: &Value_StringList{
-				StringList: &StringList{
-					List: rawValue,
-				},
-			},
-			Set: true,
-		}
+		v = StringListValue(rawValue...)
 	case IntType:
 		i, e := strconv.Atoi(rawValue[0])
 		if e != nil {
 			err = fmt.Errorf("argument should be an integer: %v", e)
 		}
-		v = &Value{
-			Type: &Value_Int{
-				Int: int32(i),
-			},
-			Set: true,
-		}
+		v = IntValue(int32(i))
 	case IntListType:
 		var is []int32
 		for _, rv := range rawValue {
@@ -68,26 +51,14 @@ func (ap *argProcessor) Value(rawValue []string) (*Value, error) {
 			// Decided to do this because changing messes up Value.Length function
 			is = append(is, int32(i))
 		}
-		v = &Value{
-			Type: &Value_IntList{
-				IntList: &IntList{
-					List: is,
-				},
-			},
-			Set: true,
-		}
+		v = IntListValue(is...)
 	case FloatType:
 		f, e := strconv.ParseFloat(rawValue[0], 64)
 		if e != nil {
 			err = fmt.Errorf("argument should be a float: %v", e)
 		}
 
-		v = &Value{
-			Type: &Value_Float{
-				Float: float32(f),
-			},
-			Set: true,
-		}
+		v = FloatValue(float32(f))
 	case FloatListType:
 		var fs []float32
 		for _, rv := range rawValue {
@@ -97,22 +68,10 @@ func (ap *argProcessor) Value(rawValue []string) (*Value, error) {
 			}
 			fs = append(fs, float32(f))
 		}
-		v = &Value{
-			Type: &Value_FloatList{
-				FloatList: &FloatList{
-					List: fs,
-				},
-			},
-			Set: true,
-		}
+		v = FloatListValue(fs...)
 	case BoolType:
 		if ap.MinN == 0 && ap.OptionalN == 0 { // flag value, true by presence
-			v = &Value{
-				Type: &Value_Bool{
-					Bool: true,
-				},
-				Set: true,
-			}
+			v = BoolValue(true)
 		} else { // arg value
 			var b, ok bool
 			b, ok = boolStringMap[rawValue[0]]
@@ -124,12 +83,7 @@ func (ap *argProcessor) Value(rawValue []string) (*Value, error) {
 				sort.Strings(keys)
 				err = fmt.Errorf("bool value must be one of %v", keys)
 			}
-			v = &Value{
-				Type: &Value_Bool{
-					Bool: b,
-				},
-				Set: true,
-			}
+			v = BoolValue(b)
 		}
 	default:
 		return nil, fmt.Errorf("invalid value type: %v", ap.ValueType)

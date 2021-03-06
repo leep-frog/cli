@@ -1,6 +1,8 @@
 package commands
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type genericFlag struct {
 	name         string

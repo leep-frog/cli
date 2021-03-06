@@ -3,12 +3,14 @@ package commands
 // TODO: split this up into separate files (not separate packages).
 
 import (
+	"fmt"
 	"sort"
 	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	vpb "github.com/leep-frog/commands/commands/value"
 )
 
 func TestUsage(t *testing.T) {
@@ -364,11 +366,15 @@ func TestSet(t *testing.T) {
 			gotArgsSet := map[string]bool{}
 			gotFlagsSet := map[string]bool{}
 			ex := func(cos CommandOS, args, flags map[string]*Value, _ *OptionInfo) (*ExecutorResponse, bool) {
+				fmt.Println("args", args)
 				for _, a := range test.cArgs {
-					gotArgsSet[a.Name()] = args[a.Name()].GetSet()
+					fmt.Println("a", a)
+					fmt.Println("name", a.Name())
+					fmt.Println("arr", args[a.Name()])
+					gotArgsSet[a.Name()] = args[a.Name()].Provided()
 				}
 				for _, f := range test.cFlags {
-					gotFlagsSet[f.Name()] = flags[f.Name()].GetSet()
+					gotFlagsSet[f.Name()] = flags[f.Name()].Provided()
 				}
 				return nil, true
 			}
@@ -631,7 +637,7 @@ func TestExecute(t *testing.T) {
 			args:   []string{"advanced", "not", "registered"},
 			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
-				"cb-command": stringList("not", "registered"),
+				"cb-command": StringListValue("not", "registered"),
 			},
 		},
 		{
@@ -648,8 +654,8 @@ func TestExecute(t *testing.T) {
 			args:   []string{"basic", "un", "deux"},
 			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
-				"val_1":      stringList("un"),
-				"variable 2": stringList("deux"),
+				"val_1":      StringListValue("un"),
+				"variable 2": StringListValue("deux"),
 			},
 		},
 		{
@@ -657,11 +663,11 @@ func TestExecute(t *testing.T) {
 			args:   []string{"basic", "--state", "jersey", "trois", "quatre"},
 			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
-				"val_1":      stringList("trois"),
-				"variable 2": stringList("quatre"),
+				"val_1":      StringListValue("trois"),
+				"variable 2": StringListValue("quatre"),
 			},
 			wantExecuteFlags: map[string]*Value{
-				"state": stringList("jersey"),
+				"state": StringListValue("jersey"),
 			},
 		},
 		{
@@ -669,11 +675,11 @@ func TestExecute(t *testing.T) {
 			args:   []string{"basic", "trois", "--state", "massachusetts", "quatre"},
 			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
-				"val_1":      stringList("trois"),
-				"variable 2": stringList("quatre"),
+				"val_1":      StringListValue("trois"),
+				"variable 2": StringListValue("quatre"),
 			},
 			wantExecuteFlags: map[string]*Value{
-				"state": stringList("massachusetts"),
+				"state": StringListValue("massachusetts"),
 			},
 		},
 		{
@@ -681,11 +687,11 @@ func TestExecute(t *testing.T) {
 			args:   []string{"basic", "trois", "quatre", "-s", "connecticut"},
 			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
-				"val_1":      stringList("trois"),
-				"variable 2": stringList("quatre"),
+				"val_1":      StringListValue("trois"),
+				"variable 2": StringListValue("quatre"),
 			},
 			wantExecuteFlags: map[string]*Value{
-				"state": stringList("connecticut"),
+				"state": StringListValue("connecticut"),
 			},
 		},
 		{
@@ -693,11 +699,11 @@ func TestExecute(t *testing.T) {
 			args:   []string{"basic", "trois", "--american", "quatre"},
 			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
-				"val_1":      stringList("trois"),
-				"variable 2": stringList("quatre"),
+				"val_1":      StringListValue("trois"),
+				"variable 2": StringListValue("quatre"),
 			},
 			wantExecuteFlags: map[string]*Value{
-				"american": boolVal(true),
+				"american": BoolValue(true),
 			},
 		},
 		{
@@ -705,11 +711,11 @@ func TestExecute(t *testing.T) {
 			args:   []string{"basic", "-a", "trois", "quatre"},
 			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
-				"val_1":      stringList("trois"),
-				"variable 2": stringList("quatre"),
+				"val_1":      StringListValue("trois"),
+				"variable 2": StringListValue("quatre"),
 			},
 			wantExecuteFlags: map[string]*Value{
-				"american": boolVal(true),
+				"american": BoolValue(true),
 			},
 		},
 		{
@@ -717,7 +723,7 @@ func TestExecute(t *testing.T) {
 			args:   []string{"intermediate", "first", "2nd", "bronze"},
 			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
-				"syllable": stringList("first", "2nd", "bronze"),
+				"syllable": StringListValue("first", "2nd", "bronze"),
 			},
 		},
 		// Test lists
@@ -731,7 +737,7 @@ func TestExecute(t *testing.T) {
 			args:   []string{"advanced", "liszt", "piano"},
 			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
-				"list-arg": stringList("piano"),
+				"list-arg": StringListValue("piano"),
 			},
 		},
 		{
@@ -739,7 +745,7 @@ func TestExecute(t *testing.T) {
 			args:   []string{"advanced", "liszt", "piano", "harp", "picolo"},
 			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
-				"list-arg": stringList("piano", "harp", "picolo"),
+				"list-arg": StringListValue("piano", "harp", "picolo"),
 			},
 		},
 		{
@@ -747,10 +753,10 @@ func TestExecute(t *testing.T) {
 			args:   []string{"advanced", "liszt", "piano", "--inside", "56", "34", "harp", "picolo"},
 			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
-				"list-arg": stringList("piano", "harp", "picolo"),
+				"list-arg": StringListValue("piano", "harp", "picolo"),
 			},
 			wantExecuteFlags: map[string]*Value{
-				"inside": stringList("56", "34"),
+				"inside": StringListValue("56", "34"),
 			},
 		},
 		{
@@ -758,10 +764,10 @@ func TestExecute(t *testing.T) {
 			args:   []string{"advanced", "liszt", "piano", "-i", "56", "34", "harp", "picolo"},
 			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
-				"list-arg": stringList("piano", "harp", "picolo"),
+				"list-arg": StringListValue("piano", "harp", "picolo"),
 			},
 			wantExecuteFlags: map[string]*Value{
-				"inside": stringList("56", "34"),
+				"inside": StringListValue("56", "34"),
 			},
 		},
 		// Test extra optional arguments.
@@ -775,7 +781,7 @@ func TestExecute(t *testing.T) {
 			args:   []string{"sometimes", "temp"},
 			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
-				"opt group": stringList("temp"),
+				"opt group": StringListValue("temp"),
 			},
 		},
 		{
@@ -783,7 +789,7 @@ func TestExecute(t *testing.T) {
 			args:   []string{"sometimes", "temp", "occasional"},
 			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
-				"opt group": stringList("temp", "occasional"),
+				"opt group": StringListValue("temp", "occasional"),
 			},
 		},
 		{
@@ -791,7 +797,7 @@ func TestExecute(t *testing.T) {
 			args:   []string{"sometimes", "temp", "occasional", "tmp", "temporary"},
 			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
-				"opt group": stringList("temp", "occasional", "tmp", "temporary"),
+				"opt group": StringListValue("temp", "occasional", "tmp", "temporary"),
 			},
 		},
 		{
@@ -805,7 +811,7 @@ func TestExecute(t *testing.T) {
 			args:   []string{"intermediate", "first", "2nd", "bronze"},
 			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
-				"syllable": stringList("first", "2nd", "bronze"),
+				"syllable": StringListValue("first", "2nd", "bronze"),
 			},
 			exResp: &ExecutorResponse{Executable: []string{"this", "was a", "success"}},
 			want:   &ExecutorResponse{Executable: []string{"this", "was a", "success"}},
@@ -832,7 +838,7 @@ func TestExecute(t *testing.T) {
 			args:   []string{"valueTypes", "string", "hello"},
 			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
-				"req": stringVal("hello"),
+				"req": StringValue("hello"),
 			},
 		},
 		{
@@ -840,8 +846,8 @@ func TestExecute(t *testing.T) {
 			args:   []string{"valueTypes", "string", "hello", "there"},
 			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
-				"req": stringVal("hello"),
-				"opt": stringVal("there"),
+				"req": StringValue("hello"),
+				"opt": StringValue("there"),
 			},
 		},
 		// stringList argument type
@@ -850,7 +856,7 @@ func TestExecute(t *testing.T) {
 			args:   []string{"valueTypes", "stringList", "its", "me"},
 			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
-				"req": stringList("its", "me"),
+				"req": StringListValue("its", "me"),
 			},
 		},
 		{
@@ -858,7 +864,7 @@ func TestExecute(t *testing.T) {
 			args:   []string{"valueTypes", "stringList", "its", "me", "mario"},
 			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
-				"req": stringList("its", "me", "mario"),
+				"req": StringListValue("its", "me", "mario"),
 			},
 		},
 		// int argument type
@@ -867,7 +873,7 @@ func TestExecute(t *testing.T) {
 			args:   []string{"valueTypes", "int", "123"},
 			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
-				"req": intVal(123),
+				"req": IntValue(123),
 			},
 		},
 		{
@@ -875,8 +881,8 @@ func TestExecute(t *testing.T) {
 			args:   []string{"valueTypes", "int", "123", "-45"},
 			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
-				"req": intVal(123),
-				"opt": intVal(-45),
+				"req": IntValue(123),
+				"opt": IntValue(-45),
 			},
 		},
 		{
@@ -895,7 +901,7 @@ func TestExecute(t *testing.T) {
 			args:   []string{"valueTypes", "intList", "123", "-45"},
 			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
-				"req": intList(123, -45),
+				"req": IntListValue(123, -45),
 			},
 		},
 		{
@@ -903,7 +909,7 @@ func TestExecute(t *testing.T) {
 			args:   []string{"valueTypes", "intList", "123", "-45", "0"},
 			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
-				"req": intList(123, -45, 0),
+				"req": IntListValue(123, -45, 0),
 			},
 		},
 		{
@@ -922,7 +928,7 @@ func TestExecute(t *testing.T) {
 			args:   []string{"valueTypes", "float", "123.45"},
 			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
-				"req": floatVal(123.45),
+				"req": FloatValue(123.45),
 			},
 		},
 		{
@@ -930,8 +936,8 @@ func TestExecute(t *testing.T) {
 			args:   []string{"valueTypes", "float", "123.45", "-67"},
 			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
-				"req": floatVal(123.45),
-				"opt": floatVal(-67),
+				"req": FloatValue(123.45),
+				"opt": FloatValue(-67),
 			},
 		},
 		{
@@ -950,7 +956,7 @@ func TestExecute(t *testing.T) {
 			args:   []string{"valueTypes", "floatList", "123.45", "-67"},
 			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
-				"req": floatList(123.45, -67),
+				"req": FloatListValue(123.45, -67),
 			},
 		},
 		{
@@ -958,7 +964,7 @@ func TestExecute(t *testing.T) {
 			args:   []string{"valueTypes", "floatList", "123.45", "-67", "0"},
 			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
-				"req": floatList(123.45, -67, 0),
+				"req": FloatListValue(123.45, -67, 0),
 			},
 		},
 		{
@@ -977,7 +983,7 @@ func TestExecute(t *testing.T) {
 			args:   []string{"valueTypes", "bool", "true"},
 			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
-				"req": boolVal(true),
+				"req": BoolValue(true),
 			},
 		},
 		{
@@ -985,8 +991,8 @@ func TestExecute(t *testing.T) {
 			args:   []string{"valueTypes", "bool", "false", "true"},
 			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
-				"req": boolVal(false),
-				"opt": boolVal(true),
+				"req": BoolValue(false),
+				"opt": BoolValue(true),
 			},
 		},
 		{
@@ -994,8 +1000,8 @@ func TestExecute(t *testing.T) {
 			args:   []string{"valueTypes", "bool", "t", "f"},
 			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
-				"req": boolVal(true),
-				"opt": boolVal(false),
+				"req": BoolValue(true),
+				"opt": BoolValue(false),
 			},
 		},
 		{
@@ -1008,10 +1014,10 @@ func TestExecute(t *testing.T) {
 			args:   []string{"valueTypes", "bool", "--vFlag", "false"},
 			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
-				"req": boolVal(false),
+				"req": BoolValue(false),
 			},
 			wantExecuteFlags: map[string]*Value{
-				"vFlag": boolVal(true),
+				"vFlag": BoolValue(true),
 			},
 		},
 		{
@@ -1019,10 +1025,10 @@ func TestExecute(t *testing.T) {
 			args:   []string{"valueTypes", "bool", "-v", "true"},
 			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
-				"req": boolVal(true),
+				"req": BoolValue(true),
 			},
 			wantExecuteFlags: map[string]*Value{
-				"vFlag": boolVal(true),
+				"vFlag": BoolValue(true),
 			},
 		},
 		// ArgOpt tests
@@ -1043,7 +1049,7 @@ func TestExecute(t *testing.T) {
 			},
 			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
-				"req": stringVal("goodbye"),
+				"req": StringValue("goodbye"),
 			},
 		},
 		{
@@ -1071,7 +1077,7 @@ func TestExecute(t *testing.T) {
 			},
 			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
-				"req": stringVal("abc"),
+				"req": StringValue("abc"),
 			},
 		},
 		{
@@ -1082,7 +1088,7 @@ func TestExecute(t *testing.T) {
 			},
 			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
-				"req": stringVal("abcd"),
+				"req": StringValue("abcd"),
 			},
 		},
 		// IntEQ
@@ -1094,7 +1100,7 @@ func TestExecute(t *testing.T) {
 			},
 			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
-				"req": intVal(24),
+				"req": IntValue(24),
 			},
 		},
 		{
@@ -1114,7 +1120,7 @@ func TestExecute(t *testing.T) {
 			},
 			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
-				"req": intVal(24),
+				"req": IntValue(24),
 			},
 		},
 		{
@@ -1134,7 +1140,7 @@ func TestExecute(t *testing.T) {
 			},
 			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
-				"req": intVal(24),
+				"req": IntValue(24),
 			},
 		},
 		{
@@ -1162,7 +1168,7 @@ func TestExecute(t *testing.T) {
 			},
 			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
-				"req": intVal(24),
+				"req": IntValue(24),
 			},
 		},
 		{
@@ -1173,7 +1179,7 @@ func TestExecute(t *testing.T) {
 			},
 			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
-				"req": intVal(25),
+				"req": IntValue(25),
 			},
 		},
 		{
@@ -1209,7 +1215,7 @@ func TestExecute(t *testing.T) {
 			},
 			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
-				"req": intVal(26),
+				"req": IntValue(26),
 			},
 		},
 		// IntGTE
@@ -1229,7 +1235,7 @@ func TestExecute(t *testing.T) {
 			},
 			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
-				"req": intVal(25),
+				"req": IntValue(25),
 			},
 		},
 		{
@@ -1240,7 +1246,7 @@ func TestExecute(t *testing.T) {
 			},
 			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
-				"req": intVal(26),
+				"req": IntValue(26),
 			},
 		},
 		// IntPositive
@@ -1268,7 +1274,7 @@ func TestExecute(t *testing.T) {
 			},
 			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
-				"req": intVal(1),
+				"req": IntValue(1),
 			},
 		},
 		// IntNegative
@@ -1280,7 +1286,7 @@ func TestExecute(t *testing.T) {
 			},
 			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
-				"req": intVal(-1),
+				"req": IntValue(-1),
 			},
 		},
 		{
@@ -1316,7 +1322,7 @@ func TestExecute(t *testing.T) {
 			},
 			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
-				"req": intVal(0),
+				"req": IntValue(0),
 			},
 		},
 		{
@@ -1327,7 +1333,7 @@ func TestExecute(t *testing.T) {
 			},
 			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
-				"req": intVal(1),
+				"req": IntValue(1),
 			},
 		},
 		// FloatEQ
@@ -1339,7 +1345,7 @@ func TestExecute(t *testing.T) {
 			},
 			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
-				"req": floatVal(24),
+				"req": FloatValue(24),
 			},
 		},
 		{
@@ -1359,7 +1365,7 @@ func TestExecute(t *testing.T) {
 			},
 			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
-				"req": floatVal(24),
+				"req": FloatValue(24),
 			},
 		},
 		{
@@ -1379,7 +1385,7 @@ func TestExecute(t *testing.T) {
 			},
 			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
-				"req": floatVal(24),
+				"req": FloatValue(24),
 			},
 		},
 		{
@@ -1407,7 +1413,7 @@ func TestExecute(t *testing.T) {
 			},
 			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
-				"req": floatVal(24),
+				"req": FloatValue(24),
 			},
 		},
 		{
@@ -1418,7 +1424,7 @@ func TestExecute(t *testing.T) {
 			},
 			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
-				"req": floatVal(25),
+				"req": FloatValue(25),
 			},
 		},
 		{
@@ -1454,7 +1460,7 @@ func TestExecute(t *testing.T) {
 			},
 			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
-				"req": floatVal(26),
+				"req": FloatValue(26),
 			},
 		},
 		// FloatGTE
@@ -1474,7 +1480,7 @@ func TestExecute(t *testing.T) {
 			},
 			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
-				"req": floatVal(25),
+				"req": FloatValue(25),
 			},
 		},
 		{
@@ -1485,7 +1491,7 @@ func TestExecute(t *testing.T) {
 			},
 			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
-				"req": floatVal(26),
+				"req": FloatValue(26),
 			},
 		},
 		// FloatPositive
@@ -1513,7 +1519,7 @@ func TestExecute(t *testing.T) {
 			},
 			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
-				"req": floatVal(1),
+				"req": FloatValue(1),
 			},
 		},
 		// FloatNegative
@@ -1525,7 +1531,7 @@ func TestExecute(t *testing.T) {
 			},
 			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
-				"req": floatVal(-1),
+				"req": FloatValue(-1),
 			},
 		},
 		{
@@ -1561,7 +1567,7 @@ func TestExecute(t *testing.T) {
 			},
 			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
-				"req": floatVal(0),
+				"req": FloatValue(0),
 			},
 		},
 		{
@@ -1572,7 +1578,7 @@ func TestExecute(t *testing.T) {
 			},
 			wantOK: true,
 			wantExecuteArgs: map[string]*Value{
-				"req": floatVal(1),
+				"req": FloatValue(1),
 			},
 		},
 		/* Useful comment for commenting out tests */
@@ -1617,7 +1623,8 @@ func TestExecute(t *testing.T) {
 				t.Errorf("command.Execute(%v) produced stderr diff (-want, +got):\n%s", test.args, diff)
 			}
 
-			opt := cmpopts.IgnoreUnexported(Value{}, StringList{}, IntList{}, FloatList{})
+			//opt := cmpopts.IgnoreUnexported(Value{}, StringList{}, IntList{}, FloatList{})
+			opt := cmpopts.IgnoreUnexported(Value{}, vpb.Value{}, vpb.StringList{}, vpb.IntList{}, vpb.FloatList{})
 			if diff := cmp.Diff(test.wantExecuteArgs, gotExecuteArgs, opt); diff != "" {
 				t.Errorf("command.Execute(%v) produced execute args diff (-want, +got):\n%s", test.args, diff)
 			}
@@ -1736,9 +1743,9 @@ func TestAutocomplete(t *testing.T) {
 			args:      []string{"basic", ""},
 			fetchResp: []string{"build", "test", "try", "trying"},
 			want:      []string{"build", "test", "try", "trying"},
-			wantValue: stringList(""),
+			wantValue: StringListValue(""),
 			wantCompleteArgs: map[string]*Value{
-				"val_1": stringList(""),
+				"val_1": StringListValue(""),
 			},
 		},
 		{
@@ -1746,9 +1753,9 @@ func TestAutocomplete(t *testing.T) {
 			args:      []string{"basic", "t"},
 			fetchResp: []string{"build", "test", "try", "trying"},
 			want:      []string{"test", "try", "trying"},
-			wantValue: stringList("t"),
+			wantValue: StringListValue("t"),
 			wantCompleteArgs: map[string]*Value{
-				"val_1": stringList("t"),
+				"val_1": StringListValue("t"),
 			},
 		},
 		{
@@ -1760,10 +1767,10 @@ func TestAutocomplete(t *testing.T) {
 			args:      []string{"basic", "build", "o"},
 			fetchResp: []string{"one", "other", "value"},
 			want:      []string{"one", "other"},
-			wantValue: stringList("o"),
+			wantValue: StringListValue("o"),
 			wantCompleteArgs: map[string]*Value{
-				"val_1":      stringList("build"),
-				"variable 2": stringList("o"),
+				"val_1":      StringListValue("build"),
+				"variable 2": StringListValue("o"),
 			},
 		},
 		{
@@ -1776,9 +1783,9 @@ func TestAutocomplete(t *testing.T) {
 			args:      []string{"ignore", ""},
 			fetchResp: []string{"argh", "aye"},
 			want:      []string{"argh", "aye"},
-			wantValue: stringVal(""),
+			wantValue: StringValue(""),
 			wantCompleteArgs: map[string]*Value{
-				"aight": stringVal(""),
+				"aight": StringValue(""),
 			},
 		},
 		// Test lists
@@ -1787,9 +1794,9 @@ func TestAutocomplete(t *testing.T) {
 			args:      []string{"advanced", "liszt", ""},
 			fetchResp: []string{"harp", "piano", "picolo"},
 			want:      []string{"harp", "piano", "picolo"},
-			wantValue: stringList(""),
+			wantValue: StringListValue(""),
 			wantCompleteArgs: map[string]*Value{
-				"list-arg": stringList(""),
+				"list-arg": StringListValue(""),
 			},
 		},
 		{
@@ -1797,9 +1804,9 @@ func TestAutocomplete(t *testing.T) {
 			args:      []string{"advanced", "liszt", "un", "deux", "trois", "quatre", "p"},
 			fetchResp: []string{"harp", "piano", "picolo"},
 			want:      []string{"piano", "picolo"},
-			wantValue: stringList("un", "deux", "trois", "quatre", "p"),
+			wantValue: StringListValue("un", "deux", "trois", "quatre", "p"),
 			wantCompleteArgs: map[string]*Value{
-				"list-arg": stringList("un", "deux", "trois", "quatre", "p"),
+				"list-arg": StringListValue("un", "deux", "trois", "quatre", "p"),
 			},
 		},
 		// Test extra optional arguments
@@ -1809,9 +1816,9 @@ func TestAutocomplete(t *testing.T) {
 			distinct:  true,
 			fetchResp: []string{"occ", "occasional", "temp", "temporary", "tmp"},
 			want:      []string{"occ", "occasional", "temp", "temporary", "tmp"},
-			wantValue: stringList(""),
+			wantValue: StringListValue(""),
 			wantCompleteArgs: map[string]*Value{
-				"opt group": stringList(""),
+				"opt group": StringListValue(""),
 			},
 		},
 		{
@@ -1820,9 +1827,9 @@ func TestAutocomplete(t *testing.T) {
 			distinct:  true,
 			fetchResp: []string{"occ", "occasional", "temp", "temporary", "tmp"},
 			want:      []string{"temp", "temporary"},
-			wantValue: stringList("tmp", "occ", "t"),
+			wantValue: StringListValue("tmp", "occ", "t"),
 			wantCompleteArgs: map[string]*Value{
-				"opt group": stringList("tmp", "occ", "t"),
+				"opt group": StringListValue("tmp", "occ", "t"),
 			},
 		},
 		{
@@ -1831,9 +1838,9 @@ func TestAutocomplete(t *testing.T) {
 			distinct:  true,
 			fetchResp: []string{"occ", "occasional", "temp", "temporary", "tmp"},
 			want:      []string{"occasional", "temporary"},
-			wantValue: stringList("tmp", "occ", "temp", ""),
+			wantValue: StringListValue("tmp", "occ", "temp", ""),
 			wantCompleteArgs: map[string]*Value{
-				"opt group": stringList("tmp", "occ", "temp", ""),
+				"opt group": StringListValue("tmp", "occ", "temp", ""),
 			},
 		},
 		{
@@ -1842,9 +1849,9 @@ func TestAutocomplete(t *testing.T) {
 			distinct:  true,
 			fetchResp: []string{"occ", "occasional", "temp", "temporary", "tmp"},
 			want:      []string{"occasional"},
-			wantValue: stringList("tmp", "occ", "temporary", "o"),
+			wantValue: StringListValue("tmp", "occ", "temporary", "o"),
 			wantCompleteArgs: map[string]*Value{
-				"opt group": stringList("tmp", "occ", "temporary", "o"),
+				"opt group": StringListValue("tmp", "occ", "temporary", "o"),
 			},
 		},
 		{
@@ -1871,9 +1878,9 @@ func TestAutocomplete(t *testing.T) {
 				`Second\ Thing`,
 				`Third\ One`,
 			},
-			wantValue: stringList(""),
+			wantValue: StringListValue(""),
 			wantCompleteArgs: map[string]*Value{
-				"alpha": stringList(""),
+				"alpha": StringListValue(""),
 			},
 		},
 		{
@@ -1889,9 +1896,9 @@ func TestAutocomplete(t *testing.T) {
 			want: []string{
 				`Fourth\ Option`,
 			},
-			wantValue: stringList("Fo"),
+			wantValue: StringListValue("Fo"),
 			wantCompleteArgs: map[string]*Value{
-				"alpha": stringList("Fo"),
+				"alpha": StringListValue("Fo"),
 			},
 		},
 		{
@@ -1909,9 +1916,9 @@ func TestAutocomplete(t *testing.T) {
 				`First\ Choice`,
 				`Fourth\ Option`,
 			},
-			wantValue: stringList("F"),
+			wantValue: StringListValue("F"),
 			wantCompleteArgs: map[string]*Value{
-				"alpha": stringList("F"),
+				"alpha": StringListValue("F"),
 			},
 		},
 		{
@@ -1930,9 +1937,9 @@ func TestAutocomplete(t *testing.T) {
 				`Greg's\ Three`,
 				`Greg's\ Two`,
 			},
-			wantValue: stringList("Greg's One", ""),
+			wantValue: StringListValue("Greg's One", ""),
 			wantCompleteArgs: map[string]*Value{
-				"whose": stringList("Greg's One", ""),
+				"whose": StringListValue("Greg's One", ""),
 			},
 		},
 		{
@@ -1950,9 +1957,9 @@ func TestAutocomplete(t *testing.T) {
 				`Greg"s\ Three`,
 				`Greg"s\ Two`,
 			},
-			wantValue: stringList(`Greg"s Other"s`, ""),
+			wantValue: StringListValue(`Greg"s Other"s`, ""),
 			wantCompleteArgs: map[string]*Value{
-				"whose": stringList(`Greg"s Other"s`, ""),
+				"whose": StringListValue(`Greg"s Other"s`, ""),
 			},
 		},
 		{
@@ -1972,9 +1979,9 @@ func TestAutocomplete(t *testing.T) {
 				`"Second Thing"`,
 				`"Third One"`,
 			},
-			wantValue: stringList(""),
+			wantValue: StringListValue(""),
 			wantCompleteArgs: map[string]*Value{
-				"alpha": stringList(""),
+				"alpha": StringListValue(""),
 			},
 		},
 		{
@@ -1994,9 +2001,9 @@ func TestAutocomplete(t *testing.T) {
 				"'Second Thing'",
 				"'Third One'",
 			},
-			wantValue: stringList("First Choice", ""),
+			wantValue: StringListValue("First Choice", ""),
 			wantCompleteArgs: map[string]*Value{
-				"alpha": stringList("First Choice", ""),
+				"alpha": StringListValue("First Choice", ""),
 			},
 		},
 		{
@@ -2014,9 +2021,9 @@ func TestAutocomplete(t *testing.T) {
 				"'First Choice'",
 				"'Fourth Option'",
 			},
-			wantValue: stringList("First Choice", "F"),
+			wantValue: StringListValue("First Choice", "F"),
 			wantCompleteArgs: map[string]*Value{
-				"alpha": stringList("First Choice", "F"),
+				"alpha": StringListValue("First Choice", "F"),
 			},
 		},
 		{
@@ -2036,9 +2043,9 @@ func TestAutocomplete(t *testing.T) {
 				`"Second Thing"`,
 				`"Third One"`,
 			},
-			wantValue: stringList(""),
+			wantValue: StringListValue(""),
 			wantCompleteArgs: map[string]*Value{
-				"alpha": stringList(""),
+				"alpha": StringListValue(""),
 			},
 		},
 		{
@@ -2056,9 +2063,9 @@ func TestAutocomplete(t *testing.T) {
 				`"First Choice"`,
 				`"Fourth Option"`,
 			},
-			wantValue: stringList("F"),
+			wantValue: StringListValue("F"),
 			wantCompleteArgs: map[string]*Value{
-				"alpha": stringList("F"),
+				"alpha": StringListValue("F"),
 			},
 		},
 		{
@@ -2074,9 +2081,9 @@ func TestAutocomplete(t *testing.T) {
 				`"Greg's Three"`,
 				`"Greg's Two"`,
 			},
-			wantValue: stringList("Greg's T"),
+			wantValue: StringListValue("Greg's T"),
 			wantCompleteArgs: map[string]*Value{
-				"whose": stringList("Greg's T"),
+				"whose": StringListValue("Greg's T"),
 			},
 		},
 		{
@@ -2096,9 +2103,9 @@ func TestAutocomplete(t *testing.T) {
 				"'Second Thing'",
 				"'Third One'",
 			},
-			wantValue: stringList(""),
+			wantValue: StringListValue(""),
 			wantCompleteArgs: map[string]*Value{
-				"alpha": stringList(""),
+				"alpha": StringListValue(""),
 			},
 		},
 		{
@@ -2116,9 +2123,9 @@ func TestAutocomplete(t *testing.T) {
 				"'First Choice'",
 				"'Fourth Option'",
 			},
-			wantValue: stringList("F"),
+			wantValue: StringListValue("F"),
 			wantCompleteArgs: map[string]*Value{
-				"alpha": stringList("F"),
+				"alpha": StringListValue("F"),
 			},
 		},
 		{
@@ -2136,9 +2143,9 @@ func TestAutocomplete(t *testing.T) {
 				`'Greg"s Three'`,
 				`'Greg"s Two'`,
 			},
-			wantValue: stringList(`Greg"s T`),
+			wantValue: StringListValue(`Greg"s T`),
 			wantCompleteArgs: map[string]*Value{
-				"whose": stringList(`Greg"s T`),
+				"whose": StringListValue(`Greg"s T`),
 			},
 		},
 		{
@@ -2154,9 +2161,9 @@ func TestAutocomplete(t *testing.T) {
 			want: []string{
 				`Attempt\ One\ Two`,
 			},
-			wantValue: stringList("Attempt One "),
+			wantValue: StringListValue("Attempt One "),
 			wantCompleteArgs: map[string]*Value{
-				"alphas": stringList("Attempt One "),
+				"alphas": StringListValue("Attempt One "),
 			},
 		},
 		{
@@ -2174,9 +2181,9 @@ func TestAutocomplete(t *testing.T) {
 				`Three\ Four`,
 				"ThreeFour",
 			},
-			wantValue: stringList("Three"),
+			wantValue: StringListValue("Three"),
 			wantCompleteArgs: map[string]*Value{
-				"alphas": stringList("Three"),
+				"alphas": StringListValue("Three"),
 			},
 		},
 		{
@@ -2192,9 +2199,9 @@ func TestAutocomplete(t *testing.T) {
 				`First\ Of`,
 				`First\ One`,
 			},
-			wantValue: stringList("First O"),
+			wantValue: StringListValue("First O"),
 			wantCompleteArgs: map[string]*Value{
-				"alpha": stringList("First O"),
+				"alpha": StringListValue("First O"),
 			},
 		},
 		// Flag tests
@@ -2228,12 +2235,12 @@ func TestAutocomplete(t *testing.T) {
 			args:      []string{"intermediate", "--american", "e"},
 			fetchResp: []string{"int", "erm", "edi", "ate"},
 			want:      []string{"edi", "erm"},
-			wantValue: stringList("e"),
+			wantValue: StringListValue("e"),
 			wantCompleteArgs: map[string]*Value{
-				"syllable": stringList("e"),
+				"syllable": StringListValue("e"),
 			},
 			wantCompleteFlags: map[string]*Value{
-				"american": boolVal(true),
+				"american": BoolValue(true),
 			},
 		},
 		{
@@ -2241,12 +2248,12 @@ func TestAutocomplete(t *testing.T) {
 			args:      []string{"intermediate", "-a", "e"},
 			fetchResp: []string{"int", "erm", "edi", "ate"},
 			want:      []string{"edi", "erm"},
-			wantValue: stringList("e"),
+			wantValue: StringListValue("e"),
 			wantCompleteArgs: map[string]*Value{
-				"syllable": stringList("e"),
+				"syllable": StringListValue("e"),
 			},
 			wantCompleteFlags: map[string]*Value{
-				"american": boolVal(true),
+				"american": BoolValue(true),
 			},
 		},
 		{
@@ -2254,12 +2261,12 @@ func TestAutocomplete(t *testing.T) {
 			args:      []string{"intermediate", "ate", "--state", "maine", "e"},
 			fetchResp: []string{"int", "erm", "edi", "ate"},
 			want:      []string{"edi", "erm"},
-			wantValue: stringList("ate", "e"),
+			wantValue: StringListValue("ate", "e"),
 			wantCompleteArgs: map[string]*Value{
-				"syllable": stringList("ate", "e"),
+				"syllable": StringListValue("ate", "e"),
 			},
 			wantCompleteFlags: map[string]*Value{
-				"state": stringList("maine"),
+				"state": StringListValue("maine"),
 			},
 		},
 		{
@@ -2267,12 +2274,12 @@ func TestAutocomplete(t *testing.T) {
 			args:      []string{"intermediate", "ate", "-s", "maine", "e"},
 			fetchResp: []string{"int", "erm", "edi", "ate"},
 			want:      []string{"edi", "erm"},
-			wantValue: stringList("ate", "e"),
+			wantValue: StringListValue("ate", "e"),
 			wantCompleteArgs: map[string]*Value{
-				"syllable": stringList("ate", "e"),
+				"syllable": StringListValue("ate", "e"),
 			},
 			wantCompleteFlags: map[string]*Value{
-				"state": stringList("maine"),
+				"state": StringListValue("maine"),
 			},
 		},
 		{
@@ -2280,9 +2287,9 @@ func TestAutocomplete(t *testing.T) {
 			args:      []string{"intermediate", "--state", ""},
 			fetchResp: []string{"california", "connecticut", "washington", "washington_dc"},
 			want:      []string{"california", "connecticut", "washington", "washington_dc"},
-			wantValue: stringList(""),
+			wantValue: StringListValue(""),
 			wantCompleteFlags: map[string]*Value{
-				"state": stringList(""),
+				"state": StringListValue(""),
 			},
 		},
 		{
@@ -2290,9 +2297,9 @@ func TestAutocomplete(t *testing.T) {
 			args:      []string{"intermediate", "--state", ""},
 			fetchResp: []string{"california", "connecticut", "washington", "washington_dc"},
 			want:      []string{"california", "connecticut", "washington", "washington_dc"},
-			wantValue: stringList(""),
+			wantValue: StringListValue(""),
 			wantCompleteFlags: map[string]*Value{
-				"state": stringList(""),
+				"state": StringListValue(""),
 			},
 		},
 		{
@@ -2300,9 +2307,9 @@ func TestAutocomplete(t *testing.T) {
 			args:      []string{"intermediate", "-s", "washington"},
 			fetchResp: []string{"california", "connecticut", "washington", "washington_dc"},
 			want:      []string{"washington", "washington_dc"},
-			wantValue: stringList("washington"),
+			wantValue: StringListValue("washington"),
 			wantCompleteFlags: map[string]*Value{
-				"state": stringList("washington"),
+				"state": StringListValue("washington"),
 			},
 		},
 		{
@@ -2310,11 +2317,11 @@ func TestAutocomplete(t *testing.T) {
 			args:      []string{"intermediate", "--another", "a", "int", "erm", "-a", "edi", "--state", ""},
 			fetchResp: []string{"california", "connecticut", "washington", "washington_dc"},
 			want:      []string{"california", "connecticut", "washington", "washington_dc"},
-			wantValue: stringList(""),
+			wantValue: StringListValue(""),
 			wantCompleteFlags: map[string]*Value{
-				"american": boolVal(true),
-				"another":  stringList("a"),
-				"state":    stringList(""),
+				"american": BoolValue(true),
+				"another":  StringListValue("a"),
+				"state":    StringListValue(""),
 			},
 		},
 		{
@@ -2322,11 +2329,11 @@ func TestAutocomplete(t *testing.T) {
 			args:      []string{"intermediate", "--another", "a", "int", "erm", "-a", "edi", "--state", "wash"},
 			fetchResp: []string{"california", "connecticut", "washington", "washington_dc"},
 			want:      []string{"washington", "washington_dc"},
-			wantValue: stringList("wash"),
+			wantValue: StringListValue("wash"),
 			wantCompleteFlags: map[string]*Value{
-				"american": boolVal(true),
-				"another":  stringList("a"),
-				"state":    stringList("wash"),
+				"american": BoolValue(true),
+				"another":  StringListValue("a"),
+				"state":    StringListValue("wash"),
 			},
 		},
 		{
@@ -2334,9 +2341,9 @@ func TestAutocomplete(t *testing.T) {
 			args:      []string{"wave", "--yourFlag", ""},
 			fetchResp: []string{"please", "person", "okay"},
 			want:      []string{"okay", "person", "please"},
-			wantValue: stringList(""),
+			wantValue: StringListValue(""),
 			wantCompleteFlags: map[string]*Value{
-				"yourFlag": stringList(""),
+				"yourFlag": StringListValue(""),
 			},
 		},
 		{
@@ -2344,9 +2351,9 @@ func TestAutocomplete(t *testing.T) {
 			args:      []string{"wave", "--yourFlag", "p"},
 			fetchResp: []string{"please", "person", "okay"},
 			want:      []string{"person", "please"},
-			wantValue: stringList("p"),
+			wantValue: StringListValue("p"),
 			wantCompleteFlags: map[string]*Value{
-				"yourFlag": stringList("p"),
+				"yourFlag": StringListValue("p"),
 			},
 		},
 		// BranchCommand tests
@@ -2364,9 +2371,9 @@ func TestAutocomplete(t *testing.T) {
 				"somethingElse",
 			},
 			wantCompleteArgs: map[string]*Value{
-				"cb-command": stringList(""),
+				"cb-command": StringListValue(""),
 			},
-			wantValue: stringList(""),
+			wantValue: StringListValue(""),
 		},
 		{
 			name:      "autocompletes nested branch command with partial completiong",
@@ -2379,9 +2386,9 @@ func TestAutocomplete(t *testing.T) {
 				"foremost",
 			},
 			wantCompleteArgs: map[string]*Value{
-				"cb-command": stringList("f"),
+				"cb-command": StringListValue("f"),
 			},
-			wantValue: stringList("f"),
+			wantValue: StringListValue("f"),
 		},
 		{
 			name:      "autocompletes only terminus command if no subcommand match",
@@ -2393,9 +2400,9 @@ func TestAutocomplete(t *testing.T) {
 				"somethingElse",
 			},
 			wantCompleteArgs: map[string]*Value{
-				"cb-command": stringList("noMatch", ""),
+				"cb-command": StringListValue("noMatch", ""),
 			},
-			wantValue: stringList("noMatch", ""),
+			wantValue: StringListValue("noMatch", ""),
 		},
 		{
 			name:      "autocompletes partial only terminus command if no subcommand match",
@@ -2406,9 +2413,9 @@ func TestAutocomplete(t *testing.T) {
 				"forVoting",
 			},
 			wantCompleteArgs: map[string]*Value{
-				"cb-command": stringList("noMatch", "for"),
+				"cb-command": StringListValue("noMatch", "for"),
 			},
-			wantValue: stringList("noMatch", "for"),
+			wantValue: StringListValue("noMatch", "for"),
 		},
 		{
 			name: "autocompletes handles invalid branch command",
@@ -2421,9 +2428,9 @@ func TestAutocomplete(t *testing.T) {
 			args:      []string{"valueTypes", "string", ""},
 			fetchResp: []string{"hi", "hello"},
 			want:      []string{"hello", "hi"},
-			wantValue: stringVal(""),
+			wantValue: StringValue(""),
 			wantCompleteArgs: map[string]*Value{
-				"req": stringVal(""),
+				"req": StringValue(""),
 			},
 		},
 		{
@@ -2431,10 +2438,10 @@ func TestAutocomplete(t *testing.T) {
 			args:      []string{"valueTypes", "string", "hello", ""},
 			fetchResp: []string{"world", "there", "toYou"},
 			want:      []string{"there", "toYou", "world"},
-			wantValue: stringVal(""),
+			wantValue: StringValue(""),
 			wantCompleteArgs: map[string]*Value{
-				"req": stringVal("hello"),
-				"opt": stringVal(""),
+				"req": StringValue("hello"),
+				"opt": StringValue(""),
 			},
 		},
 		// stringList argument type
@@ -2443,9 +2450,9 @@ func TestAutocomplete(t *testing.T) {
 			args:      []string{"valueTypes", "stringList", "hello", ""},
 			fetchResp: []string{"there", "world"},
 			want:      []string{"there", "world"},
-			wantValue: stringList("hello", ""),
+			wantValue: StringListValue("hello", ""),
 			wantCompleteArgs: map[string]*Value{
-				"req": stringList("hello", ""),
+				"req": StringListValue("hello", ""),
 			},
 		},
 		{
@@ -2453,9 +2460,9 @@ func TestAutocomplete(t *testing.T) {
 			args:      []string{"valueTypes", "stringList", "hello", "to", ""},
 			fetchResp: []string{"them", "you"},
 			want:      []string{"them", "you"},
-			wantValue: stringList("hello", "to", ""),
+			wantValue: StringListValue("hello", "to", ""),
 			wantCompleteArgs: map[string]*Value{
-				"req": stringList("hello", "to", ""),
+				"req": StringListValue("hello", "to", ""),
 			},
 		},
 		// int argument type
@@ -2464,9 +2471,9 @@ func TestAutocomplete(t *testing.T) {
 			args:      []string{"valueTypes", "int", ""},
 			fetchResp: []string{"123", "456"},
 			want:      []string{"123", "456"},
-			wantValue: intVal(0),
+			wantValue: IntValue(0),
 			wantCompleteArgs: map[string]*Value{
-				"req": intVal(0),
+				"req": IntValue(0),
 			},
 		},
 		{
@@ -2474,10 +2481,10 @@ func TestAutocomplete(t *testing.T) {
 			args:      []string{"valueTypes", "int", "123", ""},
 			fetchResp: []string{"45", "678"},
 			want:      []string{"45", "678"},
-			wantValue: intVal(0),
+			wantValue: IntValue(0),
 			wantCompleteArgs: map[string]*Value{
-				"req": intVal(123),
-				"opt": intVal(0),
+				"req": IntValue(123),
+				"opt": IntValue(0),
 			},
 		},
 		{
@@ -2485,10 +2492,10 @@ func TestAutocomplete(t *testing.T) {
 			args:      []string{"valueTypes", "int", "123.45", ""},
 			fetchResp: []string{"45", "678"},
 			want:      []string{"45", "678"},
-			wantValue: intVal(0),
+			wantValue: IntValue(0),
 			wantCompleteArgs: map[string]*Value{
-				"req": intVal(0),
-				"opt": intVal(0),
+				"req": IntValue(0),
+				"opt": IntValue(0),
 			},
 		},
 		// intList argument type
@@ -2497,9 +2504,9 @@ func TestAutocomplete(t *testing.T) {
 			args:      []string{"valueTypes", "intList", "123", ""},
 			fetchResp: []string{"45", "678"},
 			want:      []string{"45", "678"},
-			wantValue: intList(123, 0),
+			wantValue: IntListValue(123, 0),
 			wantCompleteArgs: map[string]*Value{
-				"req": intList(123, 0),
+				"req": IntListValue(123, 0),
 			},
 		},
 		{
@@ -2507,9 +2514,9 @@ func TestAutocomplete(t *testing.T) {
 			args:      []string{"valueTypes", "intList", "123", "45", ""},
 			fetchResp: []string{"67", "89"},
 			want:      []string{"67", "89"},
-			wantValue: intList(123, 45, 0),
+			wantValue: IntListValue(123, 45, 0),
 			wantCompleteArgs: map[string]*Value{
-				"req": intList(123, 45, 0),
+				"req": IntListValue(123, 45, 0),
 			},
 		},
 		{
@@ -2517,9 +2524,9 @@ func TestAutocomplete(t *testing.T) {
 			args:      []string{"valueTypes", "intList", "twelve", "45", ""},
 			fetchResp: []string{"67", "89"},
 			want:      []string{"67", "89"},
-			wantValue: intList(0, 45, 0),
+			wantValue: IntListValue(0, 45, 0),
 			wantCompleteArgs: map[string]*Value{
-				"req": intList(0, 45, 0),
+				"req": IntListValue(0, 45, 0),
 			},
 		},
 		// float argument type
@@ -2528,9 +2535,9 @@ func TestAutocomplete(t *testing.T) {
 			args:      []string{"valueTypes", "float", ""},
 			fetchResp: []string{"12.3", "-456"},
 			want:      []string{"-456", "12.3"},
-			wantValue: floatVal(0),
+			wantValue: FloatValue(0),
 			wantCompleteArgs: map[string]*Value{
-				"req": floatVal(0),
+				"req": FloatValue(0),
 			},
 		},
 		{
@@ -2538,10 +2545,10 @@ func TestAutocomplete(t *testing.T) {
 			args:      []string{"valueTypes", "float", "1.23", ""},
 			fetchResp: []string{"-4.5", "678"},
 			want:      []string{"-4.5", "678"},
-			wantValue: floatVal(0),
+			wantValue: FloatValue(0),
 			wantCompleteArgs: map[string]*Value{
-				"req": floatVal(1.23),
-				"opt": floatVal(0),
+				"req": FloatValue(1.23),
+				"opt": FloatValue(0),
 			},
 		},
 		{
@@ -2549,10 +2556,10 @@ func TestAutocomplete(t *testing.T) {
 			args:      []string{"valueTypes", "float", "eleven", ""},
 			fetchResp: []string{"-45", "67.8"},
 			want:      []string{"-45", "67.8"},
-			wantValue: floatVal(0),
+			wantValue: FloatValue(0),
 			wantCompleteArgs: map[string]*Value{
-				"req": floatVal(0),
-				"opt": floatVal(0),
+				"req": FloatValue(0),
+				"opt": FloatValue(0),
 			},
 		},
 		// floatList argument type
@@ -2561,9 +2568,9 @@ func TestAutocomplete(t *testing.T) {
 			args:      []string{"valueTypes", "floatList", "123.", ""},
 			fetchResp: []string{"4.5", "-678."},
 			want:      []string{"-678.", "4.5"},
-			wantValue: floatList(123, 0),
+			wantValue: FloatListValue(123, 0),
 			wantCompleteArgs: map[string]*Value{
-				"req": floatList(123, 0),
+				"req": FloatListValue(123, 0),
 			},
 		},
 		{
@@ -2571,9 +2578,9 @@ func TestAutocomplete(t *testing.T) {
 			args:      []string{"valueTypes", "floatList", "0.123", "-.45", ""},
 			fetchResp: []string{".67", "-.89"},
 			want:      []string{"-.89", ".67"},
-			wantValue: floatList(0.123, -0.45, 0),
+			wantValue: FloatListValue(0.123, -0.45, 0),
 			wantCompleteArgs: map[string]*Value{
-				"req": floatList(0.123, -0.45, 0),
+				"req": FloatListValue(0.123, -0.45, 0),
 			},
 		},
 		{
@@ -2582,9 +2589,9 @@ func TestAutocomplete(t *testing.T) {
 			fetchResp: []string{"6.7", "89"},
 			distinct:  true,
 			want:      []string{"6.7", "89"},
-			wantValue: floatList(0, 6.7, 0),
+			wantValue: FloatListValue(0, 6.7, 0),
 			wantCompleteArgs: map[string]*Value{
-				"req": floatList(0, 6.7, 0),
+				"req": FloatListValue(0, 6.7, 0),
 			},
 		},
 		// bool argument type
@@ -2628,8 +2635,8 @@ func TestAutocomplete(t *testing.T) {
 				t.Errorf("command.Autocomplete(%v, %d) returned diff (-want, +got):\n%s", test.args, test.cursorIdx, diff)
 			}
 
-			opt := cmpopts.IgnoreUnexported(Value{}, StringList{}, IntList{}, FloatList{})
-
+			//opt := cmpopts.IgnoreUnexported(Value{})
+			opt := cmpopts.IgnoreUnexported(Value{}, vpb.Value{}, vpb.StringList{}, vpb.IntList{}, vpb.FloatList{})
 			if diff := cmp.Diff(test.wantCompleteArgs, fetcher.gotArgs, opt); diff != "" {
 				t.Errorf("command.Autocomplete(%v, %d) produced complete args diff (-want +got):\n%s", test.args, test.cursorIdx, diff)
 			}
@@ -2674,13 +2681,13 @@ func (tf *testFetcher) Fetch(value *Value, args, flags map[string]*Value) *Compl
 func TestMiscellaneous(t *testing.T) {
 	t.Run("NoopExecutor returns nothing", func(t *testing.T) {
 		args := map[string]*Value{
-			"a": stringList("b"),
-			"c": stringList("d", "e"),
+			"a": StringListValue("b"),
+			"c": StringListValue("d", "e"),
 		}
 		flags := map[string]*Value{
-			"f0": stringList(),
-			"f1": stringList("12", "3"),
-			"f4": stringList("4", "56"),
+			"f0": StringListValue(),
+			"f1": StringListValue("12", "3"),
+			"f4": StringListValue("4", "56"),
 		}
 
 		if resp, ok := NoopExecutor(nil, args, flags, nil); resp != nil && !ok {
@@ -2690,12 +2697,12 @@ func TestMiscellaneous(t *testing.T) {
 
 	t.Run("completor with nil fetch options", func(t *testing.T) {
 		c := &Completor{}
-		v := stringList("he", "yo")
+		v := StringListValue("he", "yo")
 		as := map[string]*Value{
-			"hey": stringList("oooo"),
+			"hey": StringListValue("oooo"),
 		}
 		fs := map[string]*Value{
-			"hey": stringList("o", "o"),
+			"hey": StringListValue("o", "o"),
 		}
 		_ = c.Complete("yo", v, as, fs)
 	})

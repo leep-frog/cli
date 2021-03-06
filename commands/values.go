@@ -3,7 +3,86 @@ package commands
 import (
 	"fmt"
 	"strings"
+
+	vpb "github.com/leep-frog/commands/commands/value"
 )
+
+func StringListValue(s ...string) *Value {
+	return &Value{&vpb.Value{
+		Type: &vpb.Value_StringList{
+			StringList: &vpb.StringList{
+				List: s,
+			},
+		},
+		Set: true,
+	}}
+}
+
+func IntListValue(l ...int32) *Value {
+	return &Value{&vpb.Value{
+		Type: &vpb.Value_IntList{
+			IntList: &vpb.IntList{
+				List: l,
+			},
+		},
+		Set: true,
+	}}
+}
+
+func FloatListValue(l ...float32) *Value {
+	return &Value{&vpb.Value{
+		Type: &vpb.Value_FloatList{
+			FloatList: &vpb.FloatList{
+				List: l,
+			},
+		},
+		Set: true,
+	}}
+}
+
+func BoolValue(b bool) *Value {
+	return &Value{&vpb.Value{
+		Type: &vpb.Value_Bool{
+			Bool: b,
+		},
+		Set: true,
+	}}
+}
+
+func StringValue(s string) *Value {
+	return &Value{&vpb.Value{
+		Type: &vpb.Value_String_{
+			String_: s,
+		},
+		Set: true,
+	}}
+}
+
+func IntValue(i int32) *Value {
+	return &Value{&vpb.Value{
+		Type: &vpb.Value_Int{
+			Int: i,
+		},
+		Set: true,
+	}}
+}
+
+func FloatValue(f float32) *Value {
+	return &Value{&vpb.Value{
+		Type: &vpb.Value_Float{
+			Float: f,
+		},
+		Set: true,
+	}}
+}
+
+type Value struct {
+	*vpb.Value
+}
+
+func (v *Value) Provided() bool {
+	return v != nil && v.GetSet()
+}
 
 type ValueType int
 
@@ -32,19 +111,19 @@ var (
 
 func (v *Value) IsType(vt ValueType) bool {
 	switch v.Type.(type) {
-	case *Value_String_:
+	case *vpb.Value_String_:
 		return vt == StringType
-	case *Value_Int:
+	case *vpb.Value_Int:
 		return vt == IntType
-	case *Value_Float:
+	case *vpb.Value_Float:
 		return vt == FloatType
-	case *Value_Bool:
+	case *vpb.Value_Bool:
 		return vt == BoolType
-	case *Value_StringList:
+	case *vpb.Value_StringList:
 		return vt == StringListType
-	case *Value_IntList:
+	case *vpb.Value_IntList:
 		return vt == IntListType
-	case *Value_FloatList:
+	case *vpb.Value_FloatList:
 		return vt == FloatListType
 	}
 	return false
@@ -52,22 +131,22 @@ func (v *Value) IsType(vt ValueType) bool {
 
 func (v *Value) Str() string {
 	switch v.Type.(type) {
-	case *Value_String_:
+	case *vpb.Value_String_:
 		return v.GetString_()
-	case *Value_Int:
+	case *vpb.Value_Int:
 		return fmt.Sprintf(intFmt, v.GetInt())
-	case *Value_Float:
+	case *vpb.Value_Float:
 		return fmt.Sprintf(floatFmt, v.GetFloat())
-	case *Value_Bool:
+	case *vpb.Value_Bool:
 		if v.GetBool() {
 			return "true"
 		}
 		return "false"
-	case *Value_StringList:
+	case *vpb.Value_StringList:
 		return strings.Join(v.GetStringList().GetList(), ", ")
-	case *Value_IntList:
+	case *vpb.Value_IntList:
 		return intSliceToString(v.GetIntList().GetList())
-	case *Value_FloatList:
+	case *vpb.Value_FloatList:
 		return floatSliceToString(v.GetFloatList().GetList())
 	}
 	// Unreachable
@@ -92,11 +171,11 @@ func floatSliceToString(fs []float32) string {
 
 func (v *Value) Length() int {
 	switch v.Type.(type) {
-	case *Value_StringList:
+	case *vpb.Value_StringList:
 		return len(v.GetStringList().GetList())
-	case *Value_IntList:
+	case *vpb.Value_IntList:
 		return len(v.GetIntList().GetList())
-	case *Value_FloatList:
+	case *vpb.Value_FloatList:
 		return len(v.GetFloatList().GetList())
 	case nil:
 		// The field is not set.

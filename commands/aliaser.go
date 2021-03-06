@@ -69,7 +69,7 @@ func (fa *fileAliaser) Transform(cos CommandOS, alias string, value *Value, args
 		return nil, false
 	}
 
-	return stringVal(absPath), true
+	return StringValue(absPath), true
 }
 
 func (*fileAliaser) Arg() Arg {
