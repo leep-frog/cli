@@ -10,19 +10,19 @@ import (
 func TestAliaserAutocomplete(t *testing.T) {
 	for _, test := range []struct {
 		name string
-		a    *Aliaser
+		ac   *AliasCommand
 		args []string
 		want []string
 	}{
 		{
 			name: "suggests subcommands",
-			a:    &Aliaser{},
+			ac:   &AliasCommand{},
 			want: []string{"a", "d", "g", "l", "s"},
 		},
 		// DeleteAlias tests.
 		{
 			name: "DeleteAlias suggests aliases",
-			a: &Aliaser{
+			ac: &AliasCommand{
 				Aliases: map[string]*Value{
 					"aliasOne":   boolVal(true),
 					"aliasTwo":   boolVal(true),
@@ -40,7 +40,7 @@ func TestAliaserAutocomplete(t *testing.T) {
 		},
 		{
 			name: "DeleteAlias suggests unique aliases",
-			a: &Aliaser{
+			ac: &AliasCommand{
 				Aliases: map[string]*Value{
 					"aliasOne":   boolVal(true),
 					"aliasTwo":   boolVal(true),
@@ -57,7 +57,7 @@ func TestAliaserAutocomplete(t *testing.T) {
 		// GetAlias tests.
 		{
 			name: "GetAlias suggests aliases",
-			a: &Aliaser{
+			ac: &AliasCommand{
 				Aliases: map[string]*Value{
 					"aliasOne":   boolVal(true),
 					"aliasTwo":   boolVal(true),
@@ -75,7 +75,7 @@ func TestAliaserAutocomplete(t *testing.T) {
 		},
 		{
 			name: "GetAlias completes alias",
-			a: &Aliaser{
+			ac: &AliasCommand{
 				Aliases: map[string]*Value{
 					"aliasOne":   boolVal(true),
 					"aliasTwo":   boolVal(true),
@@ -90,7 +90,10 @@ func TestAliaserAutocomplete(t *testing.T) {
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			suggestions := Autocomplete(test.a.Command(), test.args, -1)
+			if test.ac.Aliaser == nil {
+				test.ac.Aliaser = &testAliaser{}
+			}
+			suggestions := Autocomplete(test.ac.Command(), test.args, -1)
 			if diff := cmp.Diff(test.want, suggestions); diff != "" {
 				t.Errorf("Complete(%v) produced diff (-want, +got):\n%s", test.args, diff)
 			}
@@ -98,22 +101,47 @@ func TestAliaserAutocomplete(t *testing.T) {
 	}
 }
 
-func TestAliaserExecution(t *testing.T) {
+type testAliaser struct {
+	arg       Arg
+	validate  func(cos CommandOS, alias string, value *Value, args, flags map[string]*Value) bool
+	transform func(cos CommandOS, alias string, value *Value, args, flags map[string]*Value) (*Value, bool)
+}
+
+func (ta *testAliaser) Validate(cos CommandOS, alias string, value *Value, args, flags map[string]*Value) bool {
+	if ta.validate == nil {
+		return true
+	}
+	return ta.validate(cos, alias, value, args, flags)
+}
+
+func (ta *testAliaser) Transform(cos CommandOS, alias string, value *Value, args, flags map[string]*Value) (*Value, bool) {
+	if ta.transform == nil {
+		return value, true
+	}
+	return ta.transform(cos, alias, value, args, flags)
+}
+
+func (ta *testAliaser) Arg() Arg {
+	return ta.arg
+}
+
+func TestAliasCommandExecution(t *testing.T) {
 	for _, test := range []struct {
-		name          string
-		a             *Aliaser
-		args          []string
-		limitOverride int
-		want          *Aliaser
-		wantOK        bool
-		wantResp      *ExecutorResponse
-		wantStdout    []string
-		wantStderr    []string
+		name       string
+		ac         *AliasCommand
+		args       []string
+		want       *AliasCommand
+		wantOK     bool
+		wantResp   *ExecutorResponse
+		wantStdout []string
+		wantStderr []string
 	}{
 		{
 			name: "subcommand argument required",
-			a: &Aliaser{
-				Arg: StringArg("str", true, nil),
+			ac: &AliasCommand{
+				Aliaser: &testAliaser{
+					arg: StringArg("str", true, nil),
+				},
 			},
 			wantStderr: []string{
 				"more args required",
@@ -122,8 +150,10 @@ func TestAliaserExecution(t *testing.T) {
 		// AddAlias tests.
 		{
 			name: "AddAlias requires alias arg",
-			a: &Aliaser{
-				Arg: StringArg("str", true, nil),
+			ac: &AliasCommand{
+				Aliaser: &testAliaser{
+					arg: StringArg("str", true, nil),
+				},
 			},
 			args: []string{"a"},
 			wantStderr: []string{
@@ -132,8 +162,10 @@ func TestAliaserExecution(t *testing.T) {
 		},
 		{
 			name: "AddAlias requires alias value arg",
-			a: &Aliaser{
-				Arg: StringArg("str", true, nil),
+			ac: &AliasCommand{
+				Aliaser: &testAliaser{
+					arg: StringArg("str", true, nil),
+				},
 			},
 			args: []string{"a", "salt"},
 			wantStderr: []string{
@@ -142,8 +174,10 @@ func TestAliaserExecution(t *testing.T) {
 		},
 		{
 			name: "AddAlias fails if alias already exists",
-			a: &Aliaser{
-				Arg: StringArg("str", true, nil),
+			ac: &AliasCommand{
+				Aliaser: &testAliaser{
+					arg: StringArg("str", true, nil),
+				},
 				Aliases: map[string]*Value{
 					"salt": stringVal("NaCl"),
 				},
@@ -155,12 +189,14 @@ func TestAliaserExecution(t *testing.T) {
 		},
 		{
 			name: "AddAlias adds an alias to an empty map",
-			a: &Aliaser{
-				Arg: StringArg("str", true, nil),
+			ac: &AliasCommand{
+				Aliaser: &testAliaser{
+					arg: StringArg("str", true, nil),
+				},
 			},
 			args:   []string{"a", "salt", "NaCl"},
 			wantOK: true,
-			want: &Aliaser{
+			want: &AliasCommand{
 				Aliases: map[string]*Value{
 					"salt": stringVal("NaCl"),
 				},
@@ -168,15 +204,17 @@ func TestAliaserExecution(t *testing.T) {
 		},
 		{
 			name: "AddAlias adds an alias to an existing map",
-			a: &Aliaser{
-				Arg: StringArg("str", true, nil),
+			ac: &AliasCommand{
+				Aliaser: &testAliaser{
+					arg: StringArg("str", true, nil),
+				},
 				Aliases: map[string]*Value{
 					"breakfast": stringList("green", "eggs", "and", "ham"),
 				},
 			},
 			args:   []string{"a", "salt", "NaCl"},
 			wantOK: true,
-			want: &Aliaser{
+			want: &AliasCommand{
 				Aliases: map[string]*Value{
 					"breakfast": stringList("green", "eggs", "and", "ham"),
 					"salt":      stringVal("NaCl"),
@@ -185,11 +223,13 @@ func TestAliaserExecution(t *testing.T) {
 		},
 		{
 			name: "AddAlias fails if verifier fails",
-			a: &Aliaser{
-				Arg: StringArg("str", true, nil),
-				Verifier: func(cos CommandOS, alias string, value *Value, args, flags map[string]*Value) bool {
-					cos.Stderr("bad news bears")
-					return false
+			ac: &AliasCommand{
+				Aliaser: &testAliaser{
+					arg: StringArg("str", true, nil),
+					validate: func(cos CommandOS, alias string, value *Value, args, flags map[string]*Value) bool {
+						cos.Stderr("bad news bears")
+						return false
+					},
 				},
 			},
 			args: []string{"a", "salt", "sodiumChloride"},
@@ -199,11 +239,13 @@ func TestAliaserExecution(t *testing.T) {
 		},
 		{
 			name: "AddAlias works if the verifier passes",
-			a: &Aliaser{
-				Arg: StringArg("str", true, nil),
-				Verifier: func(cos CommandOS, alias string, value *Value, args, flags map[string]*Value) bool {
-					cos.Stdout("good news tigers")
-					return true
+			ac: &AliasCommand{
+				Aliaser: &testAliaser{
+					arg: StringArg("str", true, nil),
+					validate: func(cos CommandOS, alias string, value *Value, args, flags map[string]*Value) bool {
+						cos.Stdout("good news tigers")
+						return true
+					},
 				},
 			},
 			args:   []string{"a", "salt", "NaCl"},
@@ -211,7 +253,7 @@ func TestAliaserExecution(t *testing.T) {
 			wantStdout: []string{
 				"good news tigers",
 			},
-			want: &Aliaser{
+			want: &AliasCommand{
 				Aliases: map[string]*Value{
 					"salt": stringVal("NaCl"),
 				},
@@ -219,11 +261,13 @@ func TestAliaserExecution(t *testing.T) {
 		},
 		{
 			name: "AddAlias fails if the transformer fails",
-			a: &Aliaser{
-				Arg: StringArg("str", true, nil),
-				Transformer: func(cos CommandOS, alias string, value *Value, args, flags map[string]*Value) (*Value, bool) {
-					cos.Stderr("bad news lions")
-					return nil, false
+			ac: &AliasCommand{
+				Aliaser: &testAliaser{
+					arg: StringArg("str", true, nil),
+					transform: func(cos CommandOS, alias string, value *Value, args, flags map[string]*Value) (*Value, bool) {
+						cos.Stderr("bad news lions")
+						return nil, false
+					},
 				},
 			},
 			args: []string{"a", "salt", "NaCl"},
@@ -233,15 +277,17 @@ func TestAliaserExecution(t *testing.T) {
 		},
 		{
 			name: "AddAlias transforms the value",
-			a: &Aliaser{
-				Arg: StringArg("str", true, nil),
-				Transformer: func(cos CommandOS, alias string, value *Value, args, flags map[string]*Value) (*Value, bool) {
-					return stringList("Na", "Cl"), true
+			ac: &AliasCommand{
+				Aliaser: &testAliaser{
+					arg: StringArg("str", true, nil),
+					transform: func(cos CommandOS, alias string, value *Value, args, flags map[string]*Value) (*Value, bool) {
+						return stringList("Na", "Cl"), true
+					},
 				},
 			},
 			args:   []string{"a", "salt", "NaCl"},
 			wantOK: true,
-			want: &Aliaser{
+			want: &AliasCommand{
 				Aliases: map[string]*Value{
 					"salt": stringList("Na", "Cl"),
 				},
@@ -250,7 +296,7 @@ func TestAliaserExecution(t *testing.T) {
 		// DeleteAlias tests.
 		{
 			name: "DeleteAlias requires at least one arg",
-			a:    &Aliaser{},
+			ac:   &AliasCommand{},
 			args: []string{"d"},
 			wantStderr: []string{
 				`no argument provided for "ALIAS"`,
@@ -258,7 +304,7 @@ func TestAliaserExecution(t *testing.T) {
 		},
 		{
 			name: "DeleteAlias handles nonexistent aliases",
-			a: &Aliaser{
+			ac: &AliasCommand{
 				Aliases: map[string]*Value{
 					"salt": stringList("Na", "Cl"),
 				},
@@ -271,7 +317,7 @@ func TestAliaserExecution(t *testing.T) {
 		},
 		{
 			name: "DeleteAlias deletes alias",
-			a: &Aliaser{
+			ac: &AliasCommand{
 				Aliases: map[string]*Value{
 					"salt":   stringList("Na", "Cl"),
 					"pepper": stringVal("sneezy"),
@@ -279,7 +325,7 @@ func TestAliaserExecution(t *testing.T) {
 			},
 			args:   []string{"d", "pepper"},
 			wantOK: true,
-			want: &Aliaser{
+			want: &AliasCommand{
 				Aliases: map[string]*Value{
 					"salt": stringList("Na", "Cl"),
 				},
@@ -287,7 +333,7 @@ func TestAliaserExecution(t *testing.T) {
 		},
 		{
 			name: "DeleteAlias handles several args",
-			a: &Aliaser{
+			ac: &AliasCommand{
 				Aliases: map[string]*Value{
 					"salt":   stringList("Na", "Cl"),
 					"pepper": stringVal("sneezy"),
@@ -295,7 +341,7 @@ func TestAliaserExecution(t *testing.T) {
 			},
 			args:   []string{"d", "garlic", "pepper", "other"},
 			wantOK: true,
-			want: &Aliaser{
+			want: &AliasCommand{
 				Aliases: map[string]*Value{
 					"salt": stringList("Na", "Cl"),
 				},
@@ -308,7 +354,7 @@ func TestAliaserExecution(t *testing.T) {
 		// GetAlias tests.
 		{
 			name: "GetAlias requires alias arg",
-			a:    &Aliaser{},
+			ac:   &AliasCommand{},
 			args: []string{"g"},
 			wantStderr: []string{
 				`no argument provided for "ALIAS"`,
@@ -316,7 +362,7 @@ func TestAliaserExecution(t *testing.T) {
 		},
 		{
 			name: "GetAlias fails if alias does not exist",
-			a:    &Aliaser{},
+			ac:   &AliasCommand{},
 			args: []string{"g", "pepper"},
 			wantStderr: []string{
 				`Alias "pepper" does not exist`,
@@ -324,7 +370,7 @@ func TestAliaserExecution(t *testing.T) {
 		},
 		{
 			name: "GetAlias gets an alias",
-			a: &Aliaser{
+			ac: &AliasCommand{
 				Aliases: map[string]*Value{
 					"salt": stringList("Na", "Cl"),
 				},
@@ -338,7 +384,7 @@ func TestAliaserExecution(t *testing.T) {
 		// ListAliases tests.
 		{
 			name: "ListAliases lists the aliases",
-			a: &Aliaser{
+			ac: &AliasCommand{
 				Aliases: map[string]*Value{
 					"salt":    stringList("Na", "Cl"),
 					"pepper":  stringVal("sneezy"),
@@ -360,7 +406,7 @@ func TestAliaserExecution(t *testing.T) {
 		// SearchAlias searches for aliases.
 		{
 			name: "SearchAlias requires a regex",
-			a:    &Aliaser{},
+			ac:   &AliasCommand{},
 			args: []string{"s"},
 			wantStderr: []string{
 				`no argument provided for "REGEXP"`,
@@ -368,7 +414,7 @@ func TestAliaserExecution(t *testing.T) {
 		},
 		{
 			name: "SearchAlias requires a valid regex",
-			a:    &Aliaser{},
+			ac:   &AliasCommand{},
 			args: []string{"s", ":)"},
 			wantStderr: []string{
 				"Invalid regexp: error parsing regexp: unexpected ): `:)`",
@@ -376,7 +422,7 @@ func TestAliaserExecution(t *testing.T) {
 		},
 		{
 			name: "SearchAlias works",
-			a: &Aliaser{
+			ac: &AliasCommand{
 				Aliases: map[string]*Value{
 					"salt":    stringList("Na", "Cl"),
 					"pepper":  stringVal("sneezy"),
@@ -394,8 +440,11 @@ func TestAliaserExecution(t *testing.T) {
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
+			if test.ac.Aliaser == nil {
+				test.ac.Aliaser = &testAliaser{}
+			}
 			tcos := &TestCommandOS{}
-			got, ok := Execute(tcos, test.a.Command(), test.args, nil)
+			got, ok := Execute(tcos, test.ac.Command(), test.args, nil)
 			if ok != test.wantOK {
 				t.Fatalf("commands.Execute(%v) returned %v for ok; want %v", test.args, ok, test.wantOK)
 			}
@@ -412,7 +461,7 @@ func TestAliaserExecution(t *testing.T) {
 
 			// Assume wantChanged if test.want is set
 			wantChanged := test.want != nil
-			changed := test.a != nil && test.a.Changed()
+			changed := test.ac != nil && test.ac.Changed()
 			if changed != wantChanged {
 				t.Fatalf("Execute(%v) marked Changed as %v; want %v", test.args, changed, wantChanged)
 			}
@@ -420,10 +469,10 @@ func TestAliaserExecution(t *testing.T) {
 			// Only check diff if we are expecting a change.
 			if wantChanged {
 				opts := []cmp.Option{
-					cmpopts.IgnoreUnexported(Aliaser{}, genericArgs{}, Value{}, StringList{}),
-					cmpopts.IgnoreFields(Aliaser{}, "Arg", "Transformer", "Verifier"),
+					cmpopts.IgnoreUnexported(AliasCommand{}, genericArgs{}, Value{}, StringList{}, testAliaser{}),
+					cmpopts.IgnoreFields(AliasCommand{}, "Aliaser"),
 				}
-				if diff := cmp.Diff(test.want, test.a, opts...); diff != "" {
+				if diff := cmp.Diff(test.want, test.ac, opts...); diff != "" {
 					t.Fatalf("Execute(%v) produced emacs diff (-want, +got):\n%s", test.args, diff)
 				}
 			}
