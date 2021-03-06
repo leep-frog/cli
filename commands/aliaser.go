@@ -83,43 +83,47 @@ func (af *AliasFetcher) Fetch(value *Value, args, flags map[string]*Value) *Comp
 	}
 }
 
-func (ac *AliasCommand) Command() Command {
+func (ac *AliasCommand) Subcommands() map[string]Command {
 	aliasCompletor := &Completor{
 		SuggestionFetcher: &AliasFetcher{ac: ac},
 		Distinct:          true,
 	}
 
-	return &CommandBranch{
-		Subcommands: map[string]Command{
-			"a": &TerminusCommand{
-				Executor: ac.AddAlias,
-				Args: []Arg{
-					StringArg(AliasArg, true, nil),
-					ac.Aliaser.Arg(),
-				},
-			},
-			"d": &TerminusCommand{
-				Executor: ac.DeleteAliases,
-				Args: []Arg{
-					StringListArg(AliasArg, 1, UnboundedList, aliasCompletor),
-				},
-			},
-			"g": &TerminusCommand{
-				Executor: ac.GetAlias,
-				Args: []Arg{
-					StringArg(AliasArg, true, aliasCompletor),
-				},
-			},
-			"l": &TerminusCommand{
-				Executor: ac.ListAliases,
-			},
-			"s": &TerminusCommand{
-				Executor: ac.SearchAliases,
-				Args: []Arg{
-					StringArg(RegexpArg, true, nil),
-				},
+	return map[string]Command{
+		"a": &TerminusCommand{
+			Executor: ac.AddAlias,
+			Args: []Arg{
+				StringArg(AliasArg, true, nil),
+				ac.Aliaser.Arg(),
 			},
 		},
+		"d": &TerminusCommand{
+			Executor: ac.DeleteAliases,
+			Args: []Arg{
+				StringListArg(AliasArg, 1, UnboundedList, aliasCompletor),
+			},
+		},
+		"g": &TerminusCommand{
+			Executor: ac.GetAlias,
+			Args: []Arg{
+				StringArg(AliasArg, true, aliasCompletor),
+			},
+		},
+		"l": &TerminusCommand{
+			Executor: ac.ListAliases,
+		},
+		"s": &TerminusCommand{
+			Executor: ac.SearchAliases,
+			Args: []Arg{
+				StringArg(RegexpArg, true, nil),
+			},
+		},
+	}
+}
+
+func (ac *AliasCommand) Command() Command {
+	return &CommandBranch{
+		Subcommands: ac.Subcommands(),
 	}
 }
 
