@@ -115,18 +115,39 @@ type auxValue struct {
 	FloatList  []float64
 }
 
-func (v *Value) toAux() *auxValue {
-	return &auxValue{
-		Type:       v.type_,
-		String:     v.string,
-		Int:        v.int,
-		Float:      v.float,
-		Bool:       v.bool,
-		StringList: v.stringList,
-		IntList:    v.intList,
-		FloatList:  v.floatList,
+func (vt ValueType) MarshalJSON() ([]byte, error) {
+	s, ok := typeToString[vt]
+	if !ok {
+		return nil, fmt.Errorf("unknown ValueType: %v", vt)
 	}
+	return json.Marshal(s)
 }
+
+func (vt *ValueType) UnmarshalJSON(b []byte) error {
+	sb := ""
+	if err := json.Unmarshal(b, &sb); err != nil {
+		return fmt.Errorf("ValueType requires string value: %v", err)
+	}
+	for t, s := range typeToString {
+		if sb == s {
+			*vt = t
+			return nil
+		}
+	}
+	return fmt.Errorf("unknown ValueType: %q", sb)
+}
+
+var (
+	typeToString = map[ValueType]string{
+		StringType:     "String",
+		IntType:        "Int",
+		FloatType:      "Float",
+		BoolType:       "Bool",
+		StringListType: "StringList",
+		IntListType:    "IntList",
+		FloatListType:  "FloatList",
+	}
+)
 
 func (av *auxValue) toVal() *Value {
 	switch av.Type {
@@ -149,23 +170,24 @@ func (av *auxValue) toVal() *Value {
 }
 
 func (v *Value) MarshalJSON() ([]byte, error) {
+	t := v.type_
 	switch v.type_ {
 	case StringType:
-		return json.Marshal(&auxString{v.type_, v.string})
+		return json.Marshal(&auxString{t, v.string})
 	case IntType:
-		return json.Marshal(&auxInt{v.type_, v.int})
+		return json.Marshal(&auxInt{t, v.int})
 	case FloatType:
-		return json.Marshal(&auxFloat{v.type_, v.float})
+		return json.Marshal(&auxFloat{t, v.float})
 	case BoolType:
-		return json.Marshal(&auxBool{v.type_, v.bool})
+		return json.Marshal(&auxBool{t, v.bool})
 	case StringListType:
-		return json.Marshal(&auxStringList{v.type_, v.stringList})
+		return json.Marshal(&auxStringList{t, v.stringList})
 	case IntListType:
-		return json.Marshal(&auxIntList{v.type_, v.intList})
+		return json.Marshal(&auxIntList{t, v.intList})
 	case FloatListType:
-		return json.Marshal(&auxFloatList{v.type_, v.floatList})
+		return json.Marshal(&auxFloatList{t, v.floatList})
 	}
-	return json.Marshal(nil)
+	return nil, fmt.Errorf("unknown ValueType: %v", v.type_)
 }
 
 func (v *Value) UnmarshalJSON(b []byte) error {
@@ -277,7 +299,7 @@ func (v *Value) Str() string {
 		return floatSliceToString(v.FloatList())
 	}
 	// Unreachable
-	return "UNKNOWN"
+	return "UNKNOWN_VALUE_TYPE"
 }
 
 func intSliceToString(is []int) string {

@@ -2,6 +2,7 @@ package commands
 
 import (
 	"encoding/json"
+	"fmt"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -221,203 +222,217 @@ func TestValueEqualAndJSONMarshaling(t *testing.T) {
 		{
 			name:         "nil vs not nil aren't equal",
 			this:         StringValue(""),
-			wantThisJSON: `{"Type":2,"String":""}`,
+			wantThisJSON: `{"Type":"String","String":""}`,
 			wantThatJSON: "null",
+		},
+		{
+			name:         "values of different types are not equal",
+			this:         IntValue(0),
+			that:         FloatValue(0),
+			wantThisJSON: `{"Type":"Int","Int":0}`,
+			wantThatJSON: `{"Type":"Float","Float":0}`,
+		},
+		{
+			name:         "values of different list types are not equal",
+			this:         IntListValue(),
+			that:         FloatListValue(),
+			wantThisJSON: `{"Type":"IntList","IntList":null}`,
+			wantThatJSON: `{"Type":"FloatList","FloatList":null}`,
 		},
 		{
 			name:         "equal empty string values",
 			this:         StringValue(""),
 			that:         StringValue(""),
 			want:         true,
-			wantThisJSON: `{"Type":2,"String":""}`,
-			wantThatJSON: `{"Type":2,"String":""}`,
+			wantThisJSON: `{"Type":"String","String":""}`,
+			wantThatJSON: `{"Type":"String","String":""}`,
 		},
 		{
 			name:         "equal string values",
 			this:         StringValue("this"),
 			that:         StringValue("this"),
-			wantThisJSON: `{"Type":2,"String":"this"}`,
-			wantThatJSON: `{"Type":2,"String":"this"}`,
+			wantThisJSON: `{"Type":"String","String":"this"}`,
+			wantThatJSON: `{"Type":"String","String":"this"}`,
 			want:         true,
 		},
 		{
 			name:         "unequal string values",
 			this:         StringValue("this"),
 			that:         StringValue("that"),
-			wantThisJSON: `{"Type":2,"String":"this"}`,
-			wantThatJSON: `{"Type":2,"String":"that"}`,
+			wantThisJSON: `{"Type":"String","String":"this"}`,
+			wantThatJSON: `{"Type":"String","String":"that"}`,
 		},
 		{
 			name:         "empty equal int values",
 			this:         IntValue(0),
 			that:         IntValue(0),
 			want:         true,
-			wantThisJSON: `{"Type":3,"Int":0}`,
-			wantThatJSON: `{"Type":3,"Int":0}`,
+			wantThisJSON: `{"Type":"Int","Int":0}`,
+			wantThatJSON: `{"Type":"Int","Int":0}`,
 		},
 		{
 			name:         "equal int values",
 			this:         IntValue(1),
 			that:         IntValue(1),
 			want:         true,
-			wantThisJSON: `{"Type":3,"Int":1}`,
-			wantThatJSON: `{"Type":3,"Int":1}`,
+			wantThisJSON: `{"Type":"Int","Int":1}`,
+			wantThatJSON: `{"Type":"Int","Int":1}`,
 		},
 		{
 			name:         "unequal int values",
 			this:         IntValue(0),
 			that:         IntValue(1),
-			wantThisJSON: `{"Type":3,"Int":0}`,
-			wantThatJSON: `{"Type":3,"Int":1}`,
+			wantThisJSON: `{"Type":"Int","Int":0}`,
+			wantThatJSON: `{"Type":"Int","Int":1}`,
 		},
 		{
 			name:         "empty equal float values",
 			this:         FloatValue(0),
 			that:         FloatValue(0),
 			want:         true,
-			wantThisJSON: `{"Type":5,"Float":0}`,
-			wantThatJSON: `{"Type":5,"Float":0}`,
+			wantThisJSON: `{"Type":"Float","Float":0}`,
+			wantThatJSON: `{"Type":"Float","Float":0}`,
 		},
 		{
 			name:         "equal float values",
 			this:         FloatValue(2.4),
 			that:         FloatValue(2.4),
 			want:         true,
-			wantThisJSON: `{"Type":5,"Float":2.4}`,
-			wantThatJSON: `{"Type":5,"Float":2.4}`,
+			wantThisJSON: `{"Type":"Float","Float":2.4}`,
+			wantThatJSON: `{"Type":"Float","Float":2.4}`,
 		},
 		{
 			name:         "unequal float values",
 			this:         FloatValue(1.1),
 			that:         FloatValue(2.2),
-			wantThisJSON: `{"Type":5,"Float":1.1}`,
-			wantThatJSON: `{"Type":5,"Float":2.2}`,
+			wantThisJSON: `{"Type":"Float","Float":1.1}`,
+			wantThatJSON: `{"Type":"Float","Float":2.2}`,
 		},
 		{
 			name:         "equal bool values",
 			this:         BoolValue(true),
 			that:         BoolValue(true),
 			want:         true,
-			wantThisJSON: `{"Type":7,"Bool":true}`,
-			wantThatJSON: `{"Type":7,"Bool":true}`,
+			wantThisJSON: `{"Type":"Bool","Bool":true}`,
+			wantThatJSON: `{"Type":"Bool","Bool":true}`,
 		},
 		{
 			name:         "unequal bool values",
 			this:         BoolValue(true),
 			that:         BoolValue(false),
-			wantThisJSON: `{"Type":7,"Bool":true}`,
-			wantThatJSON: `{"Type":7,"Bool":false}`,
+			wantThisJSON: `{"Type":"Bool","Bool":true}`,
+			wantThatJSON: `{"Type":"Bool","Bool":false}`,
 		},
 		{
 			name:         "empty string list",
 			this:         StringListValue(),
 			that:         StringListValue(),
 			want:         true,
-			wantThisJSON: `{"Type":1,"StringList":null}`,
-			wantThatJSON: `{"Type":1,"StringList":null}`,
+			wantThisJSON: `{"Type":"StringList","StringList":null}`,
+			wantThatJSON: `{"Type":"StringList","StringList":null}`,
 		},
 		{
 			name:         "unequal empty string list",
 			this:         StringListValue("a"),
 			that:         StringListValue(),
-			wantThisJSON: `{"Type":1,"StringList":["a"]}`,
-			wantThatJSON: `{"Type":1,"StringList":null}`,
+			wantThisJSON: `{"Type":"StringList","StringList":["a"]}`,
+			wantThatJSON: `{"Type":"StringList","StringList":null}`,
 		},
 		{
 			name:         "populated string list",
 			this:         StringListValue("a", "bc", "d"),
 			that:         StringListValue("a", "bc", "d"),
 			want:         true,
-			wantThisJSON: `{"Type":1,"StringList":["a","bc","d"]}`,
-			wantThatJSON: `{"Type":1,"StringList":["a","bc","d"]}`,
+			wantThisJSON: `{"Type":"StringList","StringList":["a","bc","d"]}`,
+			wantThatJSON: `{"Type":"StringList","StringList":["a","bc","d"]}`,
 		},
 		{
 			name:         "different string list",
 			this:         StringListValue("a", "bc", "def"),
 			that:         StringListValue("a", "bc", "d"),
-			wantThisJSON: `{"Type":1,"StringList":["a","bc","def"]}`,
-			wantThatJSON: `{"Type":1,"StringList":["a","bc","d"]}`,
+			wantThisJSON: `{"Type":"StringList","StringList":["a","bc","def"]}`,
+			wantThatJSON: `{"Type":"StringList","StringList":["a","bc","d"]}`,
 		},
 		{
 			name:         "unequal populated string list",
 			this:         StringListValue("a", "bc", "d"),
 			that:         StringListValue("a", "bc"),
-			wantThisJSON: `{"Type":1,"StringList":["a","bc","d"]}`,
-			wantThatJSON: `{"Type":1,"StringList":["a","bc"]}`,
+			wantThisJSON: `{"Type":"StringList","StringList":["a","bc","d"]}`,
+			wantThatJSON: `{"Type":"StringList","StringList":["a","bc"]}`,
 		},
 		{
 			name:         "empty int list",
 			this:         IntListValue(),
 			that:         IntListValue(),
 			want:         true,
-			wantThisJSON: `{"Type":4,"IntList":null}`,
-			wantThatJSON: `{"Type":4,"IntList":null}`,
+			wantThisJSON: `{"Type":"IntList","IntList":null}`,
+			wantThatJSON: `{"Type":"IntList","IntList":null}`,
 		},
 		{
 			name:         "unequal empty int list",
 			this:         IntListValue(0),
 			that:         IntListValue(),
-			wantThisJSON: `{"Type":4,"IntList":[0]}`,
-			wantThatJSON: `{"Type":4,"IntList":null}`,
+			wantThisJSON: `{"Type":"IntList","IntList":[0]}`,
+			wantThatJSON: `{"Type":"IntList","IntList":null}`,
 		},
 		{
 			name:         "populated int list",
 			this:         IntListValue(1, -23, 456),
 			that:         IntListValue(1, -23, 456),
 			want:         true,
-			wantThisJSON: `{"Type":4,"IntList":[1,-23,456]}`,
-			wantThatJSON: `{"Type":4,"IntList":[1,-23,456]}`,
+			wantThisJSON: `{"Type":"IntList","IntList":[1,-23,456]}`,
+			wantThatJSON: `{"Type":"IntList","IntList":[1,-23,456]}`,
 		},
 		{
 			name:         "different int list",
 			this:         IntListValue(1, -23, 789),
 			that:         IntListValue(1, -23, 456),
-			wantThisJSON: `{"Type":4,"IntList":[1,-23,789]}`,
-			wantThatJSON: `{"Type":4,"IntList":[1,-23,456]}`,
+			wantThisJSON: `{"Type":"IntList","IntList":[1,-23,789]}`,
+			wantThatJSON: `{"Type":"IntList","IntList":[1,-23,456]}`,
 		},
 		{
 			name:         "unequal populated int list",
 			this:         IntListValue(1, -23, 456),
 			that:         IntListValue(1, -23),
-			wantThisJSON: `{"Type":4,"IntList":[1,-23,456]}`,
-			wantThatJSON: `{"Type":4,"IntList":[1,-23]}`,
+			wantThisJSON: `{"Type":"IntList","IntList":[1,-23,456]}`,
+			wantThatJSON: `{"Type":"IntList","IntList":[1,-23]}`,
 		},
 		{
 			name:         "empty float list",
 			this:         FloatListValue(),
 			that:         FloatListValue(),
 			want:         true,
-			wantThisJSON: `{"Type":6,"FloatList":null}`,
-			wantThatJSON: `{"Type":6,"FloatList":null}`,
+			wantThisJSON: `{"Type":"FloatList","FloatList":null}`,
+			wantThatJSON: `{"Type":"FloatList","FloatList":null}`,
 		},
 		{
 			name:         "unequal empty float list",
 			this:         FloatListValue(0),
 			that:         FloatListValue(),
-			wantThisJSON: `{"Type":6,"FloatList":[0]}`,
-			wantThatJSON: `{"Type":6,"FloatList":null}`,
+			wantThisJSON: `{"Type":"FloatList","FloatList":[0]}`,
+			wantThatJSON: `{"Type":"FloatList","FloatList":null}`,
 		},
 		{
 			name:         "populated float list",
 			this:         FloatListValue(1, -2.3, 0.456),
 			that:         FloatListValue(1, -2.3, 0.456),
 			want:         true,
-			wantThisJSON: `{"Type":6,"FloatList":[1,-2.3,0.456]}`,
-			wantThatJSON: `{"Type":6,"FloatList":[1,-2.3,0.456]}`,
+			wantThisJSON: `{"Type":"FloatList","FloatList":[1,-2.3,0.456]}`,
+			wantThatJSON: `{"Type":"FloatList","FloatList":[1,-2.3,0.456]}`,
 		},
 		{
 			name:         "different float list",
 			this:         FloatListValue(1, -2.3, 45.6),
 			that:         FloatListValue(1, -2.3, 0.456),
-			wantThisJSON: `{"Type":6,"FloatList":[1,-2.3,45.6]}`,
-			wantThatJSON: `{"Type":6,"FloatList":[1,-2.3,0.456]}`,
+			wantThisJSON: `{"Type":"FloatList","FloatList":[1,-2.3,45.6]}`,
+			wantThatJSON: `{"Type":"FloatList","FloatList":[1,-2.3,0.456]}`,
 		},
 		{
 			name:         "unequal populated float list",
 			this:         FloatListValue(1, -2.3, 0.456),
 			that:         FloatListValue(-2.3, 0.456),
-			wantThisJSON: `{"Type":6,"FloatList":[1,-2.3,0.456]}`,
-			wantThatJSON: `{"Type":6,"FloatList":[-2.3,0.456]}`,
+			wantThisJSON: `{"Type":"FloatList","FloatList":[1,-2.3,0.456]}`,
+			wantThatJSON: `{"Type":"FloatList","FloatList":[-2.3,0.456]}`,
 		},
 		/* Usefor for commenting out tests. */
 	} {
@@ -449,7 +464,7 @@ func TestValueEqualAndJSONMarshaling(t *testing.T) {
 			// Unmarshal and verify still equal.
 			unmarshalledThis := &Value{}
 			if err := json.Unmarshal(gotThisJSON, unmarshalledThis); err != nil {
-				t.Fatalf("json.Unmarshal(%v) [this] returned an error: %v", gotThisJSON, err)
+				t.Fatalf("json.Unmarshal(%s) [this] returned an error: %v", gotThisJSON, err)
 			}
 			wantThis := test.this
 			if test.this == nil {
@@ -461,7 +476,7 @@ func TestValueEqualAndJSONMarshaling(t *testing.T) {
 
 			unmarshalledThat := &Value{}
 			if err := json.Unmarshal(gotThatJSON, unmarshalledThat); err != nil {
-				t.Fatalf("json.Unmarshal(%v) [that] returned an error: %v", gotThatJSON, err)
+				t.Fatalf("json.Unmarshal(%s) [that] returned an error: %v", gotThatJSON, err)
 			}
 			wantThat := test.that
 			if test.that == nil {
@@ -471,5 +486,140 @@ func TestValueEqualAndJSONMarshaling(t *testing.T) {
 				t.Errorf("json marshal + unmarshal [that] produced diff (-want, +got):\n%s", diff)
 			}
 		})
+	}
+}
+
+//func TestValueWithInvalidType(t *testing.T)
+
+func TestValueTypeErrors(t *testing.T) {
+	for _, val := range []int{0, 8, -3, 15} {
+		t.Run(fmt.Sprintf("marshaling ValueType(%d)", val), func(t *testing.T) {
+			vt := ValueType(val)
+			wantErr := fmt.Sprintf("json: error calling MarshalJSON for type commands.ValueType: unknown ValueType: %d", val)
+			_, err := json.Marshal(vt)
+			if err == nil {
+				t.Fatalf("json.Marshal(%v) returned nil error; want %q", vt, wantErr)
+			}
+			if diff := cmp.Diff(err.Error(), wantErr); diff != "" {
+				t.Errorf("json.Marshal(%v) returned error diff:\n%s", vt, diff)
+			}
+		})
+	}
+
+	for _, test := range []struct {
+		name    string
+		val     string
+		wantErr string
+	}{
+		{
+			name:    "empty string",
+			val:     "",
+			wantErr: "unexpected end of JSON input",
+		},
+		{
+			name:    "empty JSON object",
+			val:     "{}",
+			wantErr: "ValueType requires string value: json: cannot unmarshal object into Go value of type string",
+		},
+		{
+			name:    "number",
+			val:     "123",
+			wantErr: "ValueType requires string value: json: cannot unmarshal number into Go value of type string",
+		},
+		{
+			name:    "float",
+			val:     "12.3",
+			wantErr: "ValueType requires string value: json: cannot unmarshal number into Go value of type string",
+		},
+		{
+			name:    "null",
+			val:     "null",
+			wantErr: `unknown ValueType: ""`,
+		},
+		{
+			name:    "empty string",
+			val:     `""`,
+			wantErr: `unknown ValueType: ""`,
+		},
+		{
+			name:    "random string",
+			val:     `"hello"`,
+			wantErr: `unknown ValueType: "hello"`,
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			var vt ValueType
+			err := json.Unmarshal([]byte(test.val), &vt)
+			if err == nil {
+				t.Fatalf("json.Unmarshal(%v) returned nil error; want %q", vt, test.wantErr)
+			}
+			if diff := cmp.Diff(err.Error(), test.wantErr); diff != "" {
+				t.Errorf("json.Unmarshal(%v) returned error diff:\n%s", vt, diff)
+			}
+		})
+	}
+
+	for _, test := range []struct {
+		name    string
+		val     *Value
+		wantErr string
+		wantStr string
+	}{
+		{
+			name:    "empty value",
+			val:     &Value{},
+			wantErr: "json: error calling MarshalJSON for type *commands.Value: unknown ValueType: 0",
+			wantStr: "UNKNOWN_VALUE_TYPE",
+		},
+		{
+			name:    "value with invalid type",
+			val:     &Value{type_: 8},
+			wantErr: "json: error calling MarshalJSON for type *commands.Value: unknown ValueType: 8",
+			wantStr: "UNKNOWN_VALUE_TYPE",
+		},
+		{
+			name:    "value with other invalid type",
+			val:     &Value{type_: -1},
+			wantErr: "json: error calling MarshalJSON for type *commands.Value: unknown ValueType: -1",
+			wantStr: "UNKNOWN_VALUE_TYPE",
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			_, err := json.Marshal(test.val)
+			if err == nil {
+				t.Fatalf("json.Mmarshal(%v) returned nil error; want %q", test.val, test.wantErr)
+			}
+			if diff := cmp.Diff(err.Error(), test.wantErr); diff != "" {
+				t.Errorf("json.Marshal(%v) returned error diff:\n%s", test.val, diff)
+			}
+			if diff := cmp.Diff(test.wantStr, test.val.Str()); diff != "" {
+				t.Errorf("Value(%v).Str() produced diff: %v", test.val, diff)
+			}
+		})
+	}
+}
+
+func TestNilValueReturnsAllNil(t *testing.T) {
+	var v *Value
+	if v.String() != "" {
+		t.Errorf(`Value(nil).String() returned %s; want ""`, v.String())
+	}
+	if v.Int() != 0 {
+		t.Errorf(`Value(nil).Int() returned %d; want 0`, v.Int())
+	}
+	if v.Float() != 0 {
+		t.Errorf(`Value(nil).Float() returned %0.2f; want 0.0`, v.Float())
+	}
+	if v.Bool() != false {
+		t.Errorf(`Value(nil).Bool() returned %v; want false`, v.Bool())
+	}
+	if v.StringList() != nil {
+		t.Errorf(`Value(nil).StringList() returned %v; want false`, v.StringList())
+	}
+	if v.IntList() != nil {
+		t.Errorf(`Value(nil).IntList() returned %v; want false`, v.IntList())
+	}
+	if v.FloatList() != nil {
+		t.Errorf(`Value(nil).FloatList() returned %v; want false`, v.FloatList())
 	}
 }
