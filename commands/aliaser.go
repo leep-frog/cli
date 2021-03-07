@@ -24,9 +24,9 @@ type Aliaser interface {
 }
 
 type AliasCLI interface {
-	// Aliases returns a map from "alias type" to "alias name" to "alias value".
+	// AliasMap returns a map from "alias type" to "alias name" to "alias value".
 	// This structure easily allows for one CLI to have multiple alias types.
-	Aliases() map[string]map[string]*Value
+	AliasMap() map[string]map[string]*Value
 	// Initializes the alias map.
 	InitializeAliasMap()
 	// MarkChanged specifies that the alias has changed.
@@ -141,7 +141,7 @@ func AliasSubcommands(cli AliasCLI, aliaser Aliaser, name string) map[string]Com
 }
 
 func (ac *aliasCommand) Aliases() map[string]*Value {
-	return ac.aliasCLI.Aliases()[ac.aliasType]
+	return ac.aliasCLI.AliasMap()[ac.aliasType]
 }
 
 func (ac *aliasCommand) GetCLIAlias(s string) (*Value, bool) {
@@ -151,10 +151,10 @@ func (ac *aliasCommand) GetCLIAlias(s string) (*Value, bool) {
 
 func (ac *aliasCommand) SetCLIAlias(s string, v *Value) {
 	// Get/initialize alias map.
-	m := ac.aliasCLI.Aliases()
+	m := ac.aliasCLI.AliasMap()
 	if m == nil {
 		ac.aliasCLI.InitializeAliasMap()
-		m = ac.aliasCLI.Aliases()
+		m = ac.aliasCLI.AliasMap()
 	}
 
 	// Initialize map for specific alias type if necessary.
