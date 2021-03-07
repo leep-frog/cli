@@ -24,15 +24,19 @@ type Aliaser interface {
 }
 
 type AliasCLI interface {
-	GetAlias(string) (*Value, bool)
-	SetAlias(string, *Value)
-	DeleteAlias(string)
-	AllAliases() []string
+	// Aliases returns a map from "alias type" to "alias name" to "alias value".
+	// This structure easily allows for one CLI to have multiple alias types.
+	Aliases() map[string]map[string]*Value
+	// Initializes the alias map.
+	InitializeAliasMap()
+	// MarkChanged specifies that the alias has changed.
+	MarkChanged()
 }
 
 type aliasCommand struct {
-	aliaser  Aliaser
-	aliasCLI AliasCLI
+	aliaser   Aliaser
+	aliasCLI  AliasCLI
+	aliasType string
 }
 
 type fileAliaser struct {
@@ -84,8 +88,8 @@ type AliasFetcher struct {
 }
 
 func (af *AliasFetcher) Fetch(value *Value, args, flags map[string]*Value) *Completion {
-	suggestions := make([]string, 0, len(af.ac.aliasCLI.AllAliases()))
-	for _, k := range af.ac.aliasCLI.AllAliases() {
+	suggestions := make([]string, 0, len(af.ac.Aliases()))
+	for k := range af.ac.Aliases() {
 		suggestions = append(suggestions, k)
 	}
 	return &Completion{
@@ -93,10 +97,11 @@ func (af *AliasFetcher) Fetch(value *Value, args, flags map[string]*Value) *Comp
 	}
 }
 
-func AliasSubcommands(cli AliasCLI, aliaser Aliaser) map[string]Command {
+func AliasSubcommands(cli AliasCLI, aliaser Aliaser, name string) map[string]Command {
 	ac := &aliasCommand{
-		aliasCLI: cli,
-		aliaser:  aliaser,
+		aliasCLI:  cli,
+		aliaser:   aliaser,
+		aliasType: name,
 	}
 	aliasCompletor := &Completor{
 		SuggestionFetcher: &AliasFetcher{ac: ac},
@@ -135,10 +140,48 @@ func AliasSubcommands(cli AliasCLI, aliaser Aliaser) map[string]Command {
 	}
 }
 
+func (ac *aliasCommand) Aliases() map[string]*Value {
+	return ac.aliasCLI.Aliases()[ac.aliasType]
+}
+
+func (ac *aliasCommand) GetCLIAlias(s string) (*Value, bool) {
+	v, ok := ac.Aliases()[s]
+	return v, ok
+}
+
+func (ac *aliasCommand) SetCLIAlias(s string, v *Value) {
+	// Get/initialize alias map.
+	m := ac.aliasCLI.Aliases()
+	if m == nil {
+		ac.aliasCLI.InitializeAliasMap()
+		m = ac.aliasCLI.Aliases()
+	}
+
+	// Initialize map for specific alias type if necessary.
+	if m[ac.aliasType] == nil {
+		m[ac.aliasType] = map[string]*Value{}
+	}
+
+	// Update the alias map.
+	ac.Aliases()[s] = v
+	ac.MarkChanged()
+}
+
+func (ac *aliasCommand) DeleteCLIAlias(s string) {
+	if _, ok := ac.GetCLIAlias(s); ok {
+		delete(ac.Aliases(), s)
+		ac.MarkChanged()
+	}
+}
+
+func (ac *aliasCommand) MarkChanged() {
+	ac.aliasCLI.MarkChanged()
+}
+
 // GetAlias fetches an existing alias, if it exists.
 func (ac *aliasCommand) GetAlias(cos CommandOS, args, flags map[string]*Value, _ *OptionInfo) (*ExecutorResponse, bool) {
 	alias := args[AliasArg].String()
-	f, ok := ac.aliasCLI.GetAlias(alias)
+	f, ok := ac.GetCLIAlias(alias)
 	if !ok {
 		cos.Stderr("Alias %q does not exist", alias)
 		return nil, false
@@ -152,7 +195,7 @@ func (ac *aliasCommand) AddAlias(cos CommandOS, args, flags map[string]*Value, _
 	alias := args[AliasArg].String()
 	value := args[ac.aliaser.Arg().Name()]
 
-	if f, ok := ac.aliasCLI.GetAlias(alias); ok {
+	if f, ok := ac.GetCLIAlias(alias); ok {
 		cos.Stderr("alias already defined: (%s: %s)", alias, f.Str())
 		return nil, false
 	}
@@ -167,17 +210,17 @@ func (ac *aliasCommand) AddAlias(cos CommandOS, args, flags map[string]*Value, _
 		return nil, false
 	}
 
-	ac.aliasCLI.SetAlias(alias, value)
+	ac.SetCLIAlias(alias, value)
 	return nil, true
 }
 
 // DeleteAliases deletes an existing alias.
 func (ac *aliasCommand) DeleteAliases(cos CommandOS, args, flags map[string]*Value, _ *OptionInfo) (*ExecutorResponse, bool) {
 	for _, alias := range args[AliasArg].StringList() {
-		if _, ok := ac.aliasCLI.GetAlias(alias); !ok {
+		if _, ok := ac.GetCLIAlias(alias); !ok {
 			cos.Stderr("alias %q does not exist", alias)
 		} else {
-			ac.aliasCLI.DeleteAlias(alias)
+			ac.DeleteCLIAlias(alias)
 		}
 	}
 	return nil, true
@@ -192,15 +235,15 @@ func (ac *aliasCommand) ListAliases(cos CommandOS, _, _ map[string]*Value, _ *Op
 }
 
 func (ac *aliasCommand) listAliases() []string {
-	keys := make([]string, 0, len(ac.aliasCLI.AllAliases()))
-	for _, k := range ac.aliasCLI.AllAliases() {
+	keys := make([]string, 0, len(ac.Aliases()))
+	for k := range ac.Aliases() {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
 
 	vs := make([]string, 0, len(keys))
 	for _, k := range keys {
-		v, _ := ac.aliasCLI.GetAlias(k)
+		v, _ := ac.GetCLIAlias(k)
 		vs = append(vs, fmt.Sprintf("%s: %s", k, v.Str()))
 	}
 	return vs
