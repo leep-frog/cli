@@ -170,6 +170,10 @@ type TestCommandOS struct {
 	stderr []string
 }
 
+/*func NewTestCommandOS(t *testing.T) {
+	// TODO: Add close to TODO.
+}*/
+
 func (tcos *TestCommandOS) Stdout(s string, a ...interface{}) {
 	if tcos.stdout == nil {
 		tcos.stdout = []string{}
