@@ -385,7 +385,7 @@ func (tc *TerminusCommand) Usage() []string {
 	return usage
 }
 
-func (tc *TerminusCommand) flagMap(args []string) map[string]Flag {
+func (tc *TerminusCommand) flagMap() map[string]Flag {
 	flagMap := map[string]Flag{}
 	for _, flag := range tc.Flags {
 		flagMap[fmt.Sprintf("--%s", flag.Name())] = flag
@@ -398,7 +398,7 @@ func (tc *TerminusCommand) flagMap(args []string) map[string]Flag {
 
 // Execute loads flags and args and then runs it's executor.
 func (tc *TerminusCommand) Execute(cos CommandOS, args []string, oi *OptionInfo) (*ExecutorResponse, bool) {
-	flagMap := tc.flagMap(args)
+	flagMap := tc.flagMap()
 
 	flagValues := map[string]*Value{}
 	flaglessArgs := make([]string, 0, len(args))
@@ -476,7 +476,7 @@ func (tc *TerminusCommand) Execute(cos CommandOS, args []string, oi *OptionInfo)
 // TODO: this should return an error so it's easier to debug and test
 func (tc *TerminusCommand) Complete(args []string) *Completion {
 	// TODO: combine common logic between this and Execute
-	flagMap := tc.flagMap(args)
+	flagMap := tc.flagMap()
 
 	// TODO: short boolean flags should be combinable (`grep -or ...` for example)
 
