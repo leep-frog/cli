@@ -593,7 +593,7 @@ type basicCLI struct {
 	changed bool
 }
 
-func (bc *basicCLI) Aliases() map[string]map[string]*Value {
+func (bc *basicCLI) AliasMap() map[string]map[string]*Value {
 	return bc.AllAliases
 }
 
