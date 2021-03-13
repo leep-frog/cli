@@ -5,6 +5,8 @@ import (
 	"strings"
 )
 
+// TODO: short boolean flags should be combinable (`grep -or ...` for example)
+
 type singleArgProcessor struct {
 	optional  bool
 	transform func(s string) (*Value, error)

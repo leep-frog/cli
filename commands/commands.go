@@ -402,6 +402,8 @@ func (tc *TerminusCommand) Execute(cos CommandOS, args []string, oi *OptionInfo)
 
 	flagValues := map[string]*Value{}
 	argValues := map[string]*Value{}
+
+	// Populate flags.
 	for idx := 0; idx < len(args); {
 		arg := args[idx]
 		flag, ok := flagMap[arg]
@@ -444,77 +446,50 @@ func (tc *TerminusCommand) Execute(cos CommandOS, args []string, oi *OptionInfo)
 // Complete returns all possible autocomplete suggestions for the given list of arguments.
 // TODO: this should return an error so it's easier to debug and test
 func (tc *TerminusCommand) Complete(rawArgs []string) *Completion {
-	// TODO: combine common logic between this and Execute
 	flagMap := tc.flagMap()
-
-	// TODO: short boolean flags should be combinable (`grep -or ...` for example)
 
 	flagValues := map[string]*Value{}
 	argValues := map[string]*Value{}
-	flaglessArgs := make([]string, 0, len(rawArgs))
-	for idx := 0; idx < len(rawArgs); {
-		arg := rawArgs[idx]
+	args := rawArgs
+	// Don't care if the last argument is a flag because
+	// that is taken care of in the next step.
+	for idx := 0; idx < len(args)-1; {
+		arg := args[idx]
 		flag, ok := flagMap[arg]
 		if !ok {
-			flaglessArgs = append(flaglessArgs, arg)
 			idx++
 			continue
 		}
 
-		// If we're at the last arg, then just return all flags (and let filter take care of the rest)
-		if idx == len(rawArgs)-1 {
-			allFlags := make([]string, 0, len(flagMap))
-			for k := range flagMap {
-				allFlags = append(allFlags, k)
-			}
-			return &Completion{
-				Suggestions: filter(rawArgs, allFlags),
-			}
+		n := flag.ProcessCompleteArgs(args[(idx+1):], argValues, flagValues)
+		if n+idx+1 >= len(args) {
+			return flag.Complete(args[len(args)-1], argValues, flagValues)
 		}
-
-		n := flag.ProcessCompleteArgs(rawArgs[(idx+1):], argValues, flagValues)
-		if idx+n+1 >= len(rawArgs) { // - 1
-			return flag.Complete(rawArgs[len(rawArgs)-1], argValues, flagValues)
-		}
-		rawArgs = append(rawArgs[:idx], rawArgs[(idx+n+1):]...)
+		args = append(args[:idx], args[(idx+n+1):]...)
 	}
 
 	// Check if last arg is incomplete flag
-	if len(flaglessArgs) > 0 {
-		lastArg := flaglessArgs[len(flaglessArgs)-1]
-
-		if lastArg == "" {
-			goto positional
+	if len(args) > 0 && strings.HasPrefix(args[len(args)-1], "-") {
+		shortNames := make([]string, 0, len(tc.Flags))
+		names := make([]string, 0, len(tc.Flags))
+		for _, flag := range tc.Flags {
+			names = append(names, fmt.Sprintf("--%s", flag.Name()))
+			shortNames = append(shortNames, fmt.Sprintf("-%s", string(flag.ShortName())))
 		}
 
-		// Only show full flag names if just a hyphen
-		if lastArg == "-" {
-			fullFlags := make([]string, 0, len(tc.Flags))
-			for _, flag := range tc.Flags {
-				fullFlags = append(fullFlags, fmt.Sprintf("--%s", flag.Name()))
-			}
+		// Only show full names in this case.
+		if args[len(args)-1] == "-" {
 			return &Completion{
-				Suggestions: filter(rawArgs, fullFlags),
+				Suggestions: filter(args, names),
 			}
 		}
 
 		// Otherwise, just return all flags if the last arg is a prefix of any of them.
-		matches := false
-		allFlags := make([]string, 0, len(flagMap))
-		for k := range flagMap {
-			matches = matches || strings.HasPrefix(k, lastArg)
-			allFlags = append(allFlags, k)
-		}
-		if matches {
-			return &Completion{
-				Suggestions: filter(rawArgs, allFlags),
-			}
+		return &Completion{
+			Suggestions: filter(args, append(names, shortNames...)),
 		}
 	}
 
-positional:
-
-	args := flaglessArgs
 	for _, arg := range tc.Args {
 		n := arg.ProcessCompleteArgs(args, argValues, flagValues)
 		if n >= len(args) {
