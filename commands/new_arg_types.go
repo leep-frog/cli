@@ -2,29 +2,71 @@ package commands
 
 import (
 	"fmt"
-	"sort"
-	"strconv"
+	"strings"
 )
 
-type stringArgProcessor struct {
-	optional bool
+type singleArgProcessor struct {
+	optional  bool
+	transform func(s string) (*Value, error)
+	name      string
+	completor *Completor
+	vt        ValueType
+	opts      []ArgOpt
 }
 
-func (sap *stringArgProcessor) ProcessExecute(s []string) (*Value, int, error) {
+func (sap *singleArgProcessor) ProcessExecuteArgs(rawArgs []string, args, flags map[string]*Value) ([]string, bool, error) {
+	v, n, err := sap.ProcessExecute(rawArgs)
+	args[sap.name] = v
+	for _, opt := range sap.opts {
+		if sap.vt != opt.ValueType() {
+			return nil, false, fmt.Errorf("option can only be bound to arguments with type %v", opt.ValueType())
+		}
+
+		if err := opt.Validate(v); err != nil {
+			return nil, false, fmt.Errorf("validation failed: %v", err)
+		}
+	}
+	return rawArgs[n:], false, err
+}
+
+func (sap *singleArgProcessor) ProcessCompleteArgs(rawArgs []string, args, flags map[string]*Value) int {
+	v, n := sap.ProcessComplete(rawArgs)
+	args[sap.name] = v
+	return n
+}
+
+func (sap *singleArgProcessor) Name() string {
+	return sap.name
+}
+
+func (sap *singleArgProcessor) Optional() bool {
+	return sap.optional
+}
+
+func (sap *singleArgProcessor) Complete(rawValue string, args, flags map[string]*Value) *Completion {
+	if sap.completor == nil {
+		return nil
+	}
+	return sap.completor.Complete(rawValue, args[sap.Name()], args, flags)
+}
+
+func (sap *singleArgProcessor) ProcessExecute(s []string) (*Value, int, error) {
 	if len(s) == 0 {
 		if sap.optional {
 			return nil, 0, nil
 		}
 		return nil, 0, fmt.Errorf("not enough arguments")
 	}
-	return StringValue(s[0]), 1, nil
+	v, err := sap.transform(s[0])
+	return v, 1, err
 }
 
-func (sap *stringArgProcessor) ProcessComplete(s []string) (*Value, int) {
+func (sap *singleArgProcessor) ProcessComplete(s []string) (*Value, int) {
 	if len(s) == 0 {
 		return nil, 0
 	}
-	return StringValue(s[0]), 1
+	v, _ := sap.transform(s[0])
+	return v, 1
 }
 
 type listArgProcessor struct {
@@ -58,94 +100,9 @@ func (lap *listArgProcessor) ProcessComplete(s []string) (*Value, int) {
 	return v, endIdx
 }
 
-type intArgProcessor struct {
-	optional bool
-}
-
-func (iap *intArgProcessor) ProcessExecute(s []string) (*Value, int, error) {
-	if len(s) == 0 {
-		if iap.optional {
-			return nil, 0, nil
-		}
-		return nil, 0, fmt.Errorf("not enough arguments")
+func (sap *singleArgProcessor) Usage() []string {
+	if sap.optional {
+		return []string{"[", strings.ToUpper(sap.name), "]"}
 	}
-	i, err := strconv.Atoi(s[0])
-	if err != nil {
-		return nil, 1, fmt.Errorf("argument should be an integer: %v", err)
-	}
-	return IntValue(i), 1, nil
-}
-
-func (iap *intArgProcessor) ProcessComplete(s []string) (*Value, int) {
-	if len(s) == 0 {
-		return nil, 0
-	}
-	i, err := strconv.Atoi(s[0])
-	if err != nil {
-		return IntValue(0), 1
-	}
-	return IntValue(i), 1
-}
-
-type floatArgProcessor struct {
-	optional bool
-}
-
-func (fap *floatArgProcessor) ProcessExecute(s []string) (*Value, int, error) {
-	if len(s) == 0 {
-		if fap.optional {
-			return nil, 0, nil
-		}
-		return nil, 0, fmt.Errorf("not enough arguments")
-	}
-	f, err := strconv.ParseFloat(s[0], 64)
-	if err != nil {
-		return nil, 1, fmt.Errorf("argument should be a float: %v", err)
-	}
-	return FloatValue(f), 1, nil
-}
-
-func (fap *floatArgProcessor) ProcessComplete(s []string) (*Value, int) {
-	if len(s) == 0 {
-		return nil, 0
-	}
-	f, err := strconv.ParseFloat(s[0], 64)
-	if err != nil {
-		return FloatValue(0), 1
-	}
-	return FloatValue(f), 1
-}
-
-type boolArgProcessor struct {
-	optional bool
-}
-
-func (bap *boolArgProcessor) ProcessExecute(s []string) (*Value, int, error) {
-	if len(s) == 0 {
-		if bap.optional {
-			return nil, 0, nil
-		}
-		return nil, 0, fmt.Errorf("not enough arguments")
-	}
-	if b, ok := boolStringMap[s[0]]; ok {
-		return BoolValue(b), 1, nil
-	}
-
-	var keys []string
-	for k := range boolStringMap {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	return nil, 1, fmt.Errorf("bool value must be one of %v", keys)
-}
-
-func (bap *boolArgProcessor) ProcessComplete(s []string) (*Value, int) {
-	if len(s) == 0 {
-		return nil, 0
-	}
-	f, err := strconv.ParseFloat(s[0], 64)
-	if err != nil {
-		return FloatValue(0), 1
-	}
-	return FloatValue(f), 1
+	return []string{strings.ToUpper(sap.name)}
 }

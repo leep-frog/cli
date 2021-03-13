@@ -587,6 +587,7 @@ type Arg interface {
 	ProcessExecuteArgs(rawArgs []string, args, flags map[string]*Value) ([]string, bool, error)
 	Complete(rawValue string, args, flags map[string]*Value) *Completion
 	Usage() []string
+	// TODO: I believe this can be removed.
 	Optional() bool
 }
 

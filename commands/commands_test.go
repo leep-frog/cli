@@ -881,7 +881,7 @@ func TestExecute(t *testing.T) {
 		{
 			name:       "int argument requires int value",
 			args:       []string{"valueTypes", "int", "123.45"},
-			wantStderr: []string{`failed to process args: failed to process "req" arg: argument should be an integer: strconv.Atoi: parsing "123.45": invalid syntax`},
+			wantStderr: []string{`failed to process args: argument should be an integer: strconv.Atoi: parsing "123.45": invalid syntax`},
 		},
 		{
 			name:       "int flag requires int value",
@@ -936,7 +936,7 @@ func TestExecute(t *testing.T) {
 		{
 			name:       "float argument requires float value",
 			args:       []string{"valueTypes", "float", "twelve"},
-			wantStderr: []string{`failed to process args: failed to process "req" arg: argument should be a float: strconv.ParseFloat: parsing "twelve": invalid syntax`},
+			wantStderr: []string{`failed to process args: argument should be a float: strconv.ParseFloat: parsing "twelve": invalid syntax`},
 		},
 		{
 			name:       "float flag requires float value",
@@ -1000,7 +1000,7 @@ func TestExecute(t *testing.T) {
 		{
 			name:       "bool argument requires bool value",
 			args:       []string{"valueTypes", "bool", "maybe"},
-			wantStderr: []string{`failed to process args: failed to process "req" arg: bool value must be one of [f false t true]`},
+			wantStderr: []string{`failed to process args: bool value must be one of [f false t true]`},
 		},
 		{
 			name:   "bool flag works",

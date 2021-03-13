@@ -285,13 +285,72 @@ func (ga *genericArgs) Usage() []string {
 }
 
 func StringArg(name string, required bool, completor *Completor, opts ...ArgOpt) Arg {
-	p := &stringArgProcessor{
-		optional: !required,
+	return &singleArgProcessor{
+		name:      name,
+		completor: completor,
+		opts:      opts,
+		vt:        StringType,
+		optional:  !required,
+		transform: func(s string) (*Value, error) {
+			return StringValue(s), nil
+		},
 	}
-	if !required {
-		return newListArg(name, StringType, 0, 1, completor, p, opts...)
+}
+
+func IntArg(name string, required bool, completor *Completor, opts ...ArgOpt) Arg {
+	return &singleArgProcessor{
+		name:      name,
+		optional:  !required,
+		completor: completor,
+		opts:      opts,
+		vt:        IntType,
+		transform: func(s string) (*Value, error) {
+			i, err := strconv.Atoi(s)
+			if err != nil {
+				err = fmt.Errorf("argument should be an integer: %v", err)
+			}
+			return IntValue(i), err
+		},
 	}
-	return newListArg(name, StringType, 1, 0, completor, p, opts...)
+}
+
+func FloatArg(name string, required bool, completor *Completor, opts ...ArgOpt) Arg {
+	return &singleArgProcessor{
+		name:      name,
+		completor: completor,
+		opts:      opts,
+		vt:        FloatType,
+		optional:  !required,
+		transform: func(s string) (*Value, error) {
+			f, err := strconv.ParseFloat(s, 64)
+			if err != nil {
+				err = fmt.Errorf("argument should be a float: %v", err)
+			}
+			return FloatValue(f), err
+		},
+	}
+}
+
+func BoolArg(name string, required bool, opts ...ArgOpt) Arg {
+	return &singleArgProcessor{
+		name:      name,
+		completor: BoolCompletor(),
+		opts:      opts,
+		vt:        FloatType,
+		optional:  !required,
+		transform: func(s string) (*Value, error) {
+			if b, ok := boolStringMap[s]; ok {
+				return BoolValue(b), nil
+			}
+
+			var keys []string
+			for k := range boolStringMap {
+				keys = append(keys, k)
+			}
+			sort.Strings(keys)
+			return nil, fmt.Errorf("bool value must be one of %v", keys)
+		},
+	}
 }
 
 func StringListArg(name string, minN, optionalN int, completor *Completor, opts ...ArgOpt) Arg {
@@ -343,37 +402,6 @@ func FloatListArg(name string, minN, optionalN int, completor *Completor, opts .
 		},
 	}
 	return newListArg(name, IntListType, minN, optionalN, completor, p, opts...)
-}
-
-func IntArg(name string, required bool, completor *Completor, opts ...ArgOpt) Arg {
-	p := &intArgProcessor{
-		optional: !required,
-	}
-	if !required {
-		return newListArg(name, IntType, 0, 1, completor, p, opts...)
-	}
-	return newListArg(name, IntType, 1, 0, completor, p, opts...)
-}
-
-func FloatArg(name string, required bool, completor *Completor, opts ...ArgOpt) Arg {
-	p := &floatArgProcessor{
-		optional: !required,
-	}
-	if !required {
-		return newListArg(name, FloatType, 0, 1, completor, p, opts...)
-	}
-	return newListArg(name, FloatType, 1, 0, completor, p, opts...)
-}
-
-func BoolArg(name string, required bool, opts ...ArgOpt) Arg {
-	p := &boolArgProcessor{
-		optional: !required,
-	}
-	bc := BoolCompletor()
-	if required {
-		return newListArg(name, BoolType, 1, 0, bc, p, opts...)
-	}
-	return newListArg(name, BoolType, 0, 1, bc, p, opts...)
 }
 
 func newListArg(name string, vt ValueType, minN, optionalN int, completor *Completor, processor argTypeProcessor, opts ...ArgOpt) Arg {
