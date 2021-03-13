@@ -401,6 +401,7 @@ func (tc *TerminusCommand) Execute(cos CommandOS, args []string, oi *OptionInfo)
 	flagMap := tc.flagMap()
 
 	flagValues := map[string]*Value{}
+	argValues := map[string]*Value{}
 	flaglessArgs := make([]string, 0, len(args))
 	for idx := 0; idx < len(args); {
 		arg := args[idx]
@@ -412,24 +413,16 @@ func (tc *TerminusCommand) Execute(cos CommandOS, args []string, oi *OptionInfo)
 		}
 
 		// Ignore string values. That's only for complete.
-		value, fullyProcessed, err := flag.ProcessArgs(args[(idx + 1):])
+		choppedArgs, _, err := flag.ProcessExecuteArgs(args[(idx+1):], argValues, flagValues)
 		if err != nil {
 			cos.Stderr("failed to process flags: %v", err)
 			return nil, false
 		}
-
-		if fullyProcessed {
-			flagValues[flag.Name()] = value
-			idx += 1 + flag.Length(value)
-		} else {
-			cos.Stderr("not enough values passed to flag %q", flag.Name())
-			return nil, false
-		}
+		args = append(args[:(idx)], choppedArgs...)
 	}
 
 	// Populate args
 	argIdx := 0
-	populatedArgs := map[string]*Value{}
 	for idx := 0; idx < len(flaglessArgs); {
 		if argIdx >= len(tc.Args) {
 			cos.Stderr("extra unknown args (%v)", flaglessArgs[idx:])
@@ -438,20 +431,13 @@ func (tc *TerminusCommand) Execute(cos CommandOS, args []string, oi *OptionInfo)
 
 		arg := tc.Args[argIdx]
 		// Ignore string values. That's only for complete.
-		value, fullyProcessed, err := arg.ProcessArgs(flaglessArgs[idx:])
+		var err error
+		flaglessArgs, _, err = arg.ProcessExecuteArgs(flaglessArgs[idx:], argValues, flagValues)
 		if err != nil {
 			cos.Stderr("failed to process args: %v", err)
 			return nil, false
 		}
-		populatedArgs[arg.Name()] = value
-
-		if fullyProcessed {
-			idx += value.Length()
-			argIdx++
-		} else {
-			cos.Stderr("not enough arguments for %q arg", arg.Name())
-			return nil, false
-		}
+		argIdx++
 	}
 
 	// Iterate to first non-optional argument
@@ -469,21 +455,22 @@ func (tc *TerminusCommand) Execute(cos CommandOS, args []string, oi *OptionInfo)
 		return nil, false
 	}
 
-	return tc.Executor(cos, populatedArgs, flagValues, oi)
+	return tc.Executor(cos, argValues, flagValues, oi)
 }
 
 // Complete returns all possible autocomplete suggestions for the given list of arguments.
 // TODO: this should return an error so it's easier to debug and test
-func (tc *TerminusCommand) Complete(args []string) *Completion {
+func (tc *TerminusCommand) Complete(rawArgs []string) *Completion {
 	// TODO: combine common logic between this and Execute
 	flagMap := tc.flagMap()
 
 	// TODO: short boolean flags should be combinable (`grep -or ...` for example)
 
 	flagValues := map[string]*Value{}
-	flaglessArgs := make([]string, 0, len(args))
-	for idx := 0; idx < len(args); {
-		arg := args[idx]
+	argValues := map[string]*Value{}
+	flaglessArgs := make([]string, 0, len(rawArgs))
+	for idx := 0; idx < len(rawArgs); {
+		arg := rawArgs[idx]
 		flag, ok := flagMap[arg]
 		if !ok {
 			flaglessArgs = append(flaglessArgs, arg)
@@ -492,31 +479,35 @@ func (tc *TerminusCommand) Complete(args []string) *Completion {
 		}
 
 		// If we're at the last arg, then just return all flags (and let filter take care of the rest)
-		if idx == len(args)-1 {
+		if idx == len(rawArgs)-1 {
 			allFlags := make([]string, 0, len(flagMap))
 			for k := range flagMap {
 				allFlags = append(allFlags, k)
 			}
 			return &Completion{
-				Suggestions: filter(args, allFlags),
+				Suggestions: filter(rawArgs, allFlags),
 			}
 		}
 
-		value, fullyProcessed, _ := flag.ProcessArgs(args[(idx + 1):])
+		n := flag.ProcessCompleteArgs(rawArgs[(idx+1):], argValues, flagValues)
+		if idx+n+1 >= len(rawArgs) { // - 1
+			return flag.Complete(rawArgs[len(rawArgs)-1], argValues, flagValues)
+		}
+		rawArgs = append(rawArgs[:idx], rawArgs[(idx+n+1):]...)
+		/*value, fullyProcessed, _ := flag.ProcessCompleteArgs(rawArgs[(idx+1):], argValues, flagValues)
 
 		var argPrefix string
-		if idx < len(args)-1 {
-			argPrefix = args[idx+1]
+		if idx < len(rawArgs)-1 {
+			argPrefix = rawArgs[idx+1]
 		}
-		flagValues[flag.Name()] = value
 		if fullyProcessed {
 			idx += flag.Length(value) + 1 // + 1 for flag itself
-			if idx >= len(args) {
+			if idx >= len(rawArgs) {
 				return flag.Complete(argPrefix, nil, flagValues)
 			}
 		} else {
 			return flag.Complete(argPrefix, nil, flagValues)
-		}
+		}*/
 	}
 
 	// Check if last arg is incomplete flag
@@ -534,7 +525,7 @@ func (tc *TerminusCommand) Complete(args []string) *Completion {
 				fullFlags = append(fullFlags, fmt.Sprintf("--%s", flag.Name()))
 			}
 			return &Completion{
-				Suggestions: filter(args, fullFlags),
+				Suggestions: filter(rawArgs, fullFlags),
 			}
 		}
 
@@ -547,7 +538,7 @@ func (tc *TerminusCommand) Complete(args []string) *Completion {
 		}
 		if matches {
 			return &Completion{
-				Suggestions: filter(args, allFlags),
+				Suggestions: filter(rawArgs, allFlags),
 			}
 		}
 	}
@@ -559,15 +550,19 @@ positional:
 	}
 
 	argIdx := 0
-	populatedArgs := map[string]*Value{}
 	for idx := 0; idx < len(flaglessArgs); {
 		if argIdx >= len(tc.Args) {
 			return nil
 		}
 
 		arg := tc.Args[argIdx]
-		value, fullyProcessed, _ := arg.ProcessArgs(flaglessArgs[idx:])
-		populatedArgs[arg.Name()] = value
+		n := arg.ProcessCompleteArgs(flaglessArgs[idx:], argValues, flagValues)
+		if idx+n >= len(flaglessArgs) {
+			return arg.Complete(flaglessArgs[len(flaglessArgs)-1], argValues, flagValues)
+		}
+		argIdx++
+		flaglessArgs = append(flaglessArgs[:idx], flaglessArgs[(idx+n):]...)
+		/*value, fullyProcessed, _ :=
 
 		if fullyProcessed {
 			idx += value.Length()
@@ -578,16 +573,18 @@ positional:
 			argIdx++
 		} else {
 			break
-		}
+		}*/
 	}
 
-	return tc.Args[argIdx].Complete(flaglessArgs[len(flaglessArgs)-1], populatedArgs, flagValues)
+	return nil
+	//return tc.Args[argIdx].Complete(flaglessArgs[len(flaglessArgs)-1], argValues, flagValues)
 }
 
 // Arg is a positional argument used by a TerminusCommand.
 type Arg interface {
 	Name() string
-	ProcessArgs(args []string) (*Value, bool, error)
+	ProcessCompleteArgs(rawArgs []string, args, flags map[string]*Value) int
+	ProcessExecuteArgs(rawArgs []string, args, flags map[string]*Value) ([]string, bool, error)
 	Complete(rawValue string, args, flags map[string]*Value) *Completion
 	Usage() []string
 	Optional() bool
@@ -597,7 +594,8 @@ type Arg interface {
 type Flag interface {
 	Name() string
 	ShortName() rune
-	ProcessArgs(args []string) (*Value, bool, error)
+	ProcessCompleteArgs(rawArgs []string, args, flags map[string]*Value) int
+	ProcessExecuteArgs(rawArgs []string, args, flags map[string]*Value) ([]string, bool, error)
 	Complete(rawValue string, args, flags map[string]*Value) *Completion
 	Usage() []string
 	Length(*Value) int

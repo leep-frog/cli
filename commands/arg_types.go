@@ -16,12 +16,21 @@ type ArgOpt interface {
 	Validate(*Value) error
 }
 
+type argTypeProcessor interface {
+	ProcessExecute([]string) (*Value, int, error)
+	ProcessComplete([]string) (*Value, int)
+}
+
 type argProcessor struct {
 	ValueType ValueType
 	MinN      int
 	// Use -1 for unlimited.
-	OptionalN int
-	argOpts   []ArgOpt
+	OptionalN        int
+	argOpts          []ArgOpt
+	flag             bool
+	argName          string
+	argTypeProcessor argTypeProcessor
+	boolFlag         bool
 }
 
 func (ap *argProcessor) Value(rawValue []string) (*Value, error) {
@@ -106,15 +115,94 @@ func (ap *argProcessor) Value(rawValue []string) (*Value, error) {
 	return v, nil
 }
 
-// TODO: return error instead of boolean
-// TODO: should this be ProcessExecuteArgs and ProcessCompleteArgs? feels like weird return values atm.
-func (ap *argProcessor) ProcessArgs(args []string) (*Value, bool, error) {
-	args, correctNumber := ap.processNumArgs(args)
-	value, err := ap.Value(args)
-	if err == nil {
-		return value, correctNumber, nil
+func (ap *argProcessor) Set(v *Value, args, flags map[string]*Value) {
+	if ap.flag {
+		flags[ap.argName] = v
+	} else {
+		args[ap.argName] = v
 	}
-	return value, correctNumber, fmt.Errorf("failed to convert value: %v", err)
+}
+
+// TODO: return error instead of boolean
+func (ap *argProcessor) ProcessCompleteArgs(rawArgs []string, args, flags map[string]*Value) int {
+	if ap.argTypeProcessor != nil {
+		v, n := ap.argTypeProcessor.ProcessComplete(cp(rawArgs))
+		ap.Set(v, args, flags)
+		return n
+	}
+	newArgs, _ := ap.processNumArgs(rawArgs)
+	value, err := ap.Value(cp(newArgs))
+	ap.Set(value, args, flags)
+	if err == nil {
+		if ap.boolFlag {
+			return 0
+		}
+		return value.Length()
+	}
+
+	var n int
+	if ap.UnlimitedN() {
+		n = len(rawArgs)
+	} else {
+		n = min(ap.MinN+ap.OptionalN, len(rawArgs))
+	}
+	// Don't return error because we still want to process.
+	return n //fmt.Errorf("failed to convert value: %v", err)
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
+}
+
+func cp(s []string) []string {
+	r := make([]string, 0, len(s))
+	for _, i := range s {
+		r = append(r, i)
+	}
+	return r
+}
+
+func (ap *argProcessor) ProcessExecuteArgs(rawArgs []string, args, flags map[string]*Value) ([]string, bool, error) {
+	if ap.argTypeProcessor != nil {
+		v, n, err := ap.argTypeProcessor.ProcessExecute(rawArgs)
+		if err != nil {
+			return nil, false, fmt.Errorf("failed to process %q arg: %v", ap.argName, err)
+		}
+		ap.Set(v, args, flags)
+
+		// TODO: move this somewhere else.
+		for _, opt := range ap.argOpts {
+			if ap.ValueType != opt.ValueType() {
+				return nil, false, fmt.Errorf("option can only be bound to arguments with type %v", opt.ValueType())
+			}
+
+			if err := opt.Validate(v); err != nil {
+				return nil, false, fmt.Errorf("validation failed: %v", err)
+			}
+		}
+
+		return rawArgs[n:], true, nil
+	}
+	argsForValue, correctNumber := ap.processNumArgs(rawArgs)
+	value, err := ap.Value(cp(argsForValue))
+	ap.Set(value, args, flags)
+	if err != nil {
+		return nil, correctNumber, fmt.Errorf("failed to convert value: %v", err)
+	}
+	if !correctNumber {
+		return nil, false, fmt.Errorf("not enough arguments for %q arg", ap.argName)
+	}
+	return rawArgs[len(argsForValue):], correctNumber, nil
 }
 
 func (ap *argProcessor) processNumArgs(args []string) ([]string, bool) {
@@ -184,8 +272,12 @@ func (ga *genericArgs) Complete(rawValue string, args, flags map[string]*Value) 
 	return ga.completor.Complete(rawValue, args[ga.Name()], args, flags)
 }
 
-func (ga *genericArgs) ProcessArgs(args []string) (*Value, bool, error) {
-	return ga.argProcessor.ProcessArgs(args)
+func (ga *genericArgs) ProcessCompleteArgs(rawArgs []string, args, flags map[string]*Value) int {
+	return ga.argProcessor.ProcessCompleteArgs(rawArgs, args, flags)
+}
+
+func (ga *genericArgs) ProcessExecuteArgs(rawArgs []string, args, flags map[string]*Value) ([]string, bool, error) {
+	return ga.argProcessor.ProcessExecuteArgs(rawArgs, args, flags)
 }
 
 func (ga *genericArgs) Usage() []string {
@@ -193,54 +285,107 @@ func (ga *genericArgs) Usage() []string {
 }
 
 func StringArg(name string, required bool, completor *Completor, opts ...ArgOpt) Arg {
-	if !required {
-		return listArg(name, StringType, 0, 1, completor, opts...)
+	p := &stringArgProcessor{
+		optional: !required,
 	}
-	return listArg(name, StringType, 1, 0, completor, opts...)
+	if !required {
+		return newListArg(name, StringType, 0, 1, completor, p, opts...)
+	}
+	return newListArg(name, StringType, 1, 0, completor, p, opts...)
 }
 
 func StringListArg(name string, minN, optionalN int, completor *Completor, opts ...ArgOpt) Arg {
-	return listArg(name, StringListType, minN, optionalN, completor, opts...)
-}
-
-func IntArg(name string, required bool, completor *Completor, opts ...ArgOpt) Arg {
-	if !required {
-		return listArg(name, IntType, 0, 1, completor, opts...)
+	p := &listArgProcessor{
+		minN:      minN,
+		optionalN: optionalN,
+		transform: func(s []string) (*Value, error) { return StringListValue(s...), nil },
 	}
-	return listArg(name, IntType, 1, 0, completor, opts...)
+	return newListArg(name, StringListType, minN, optionalN, completor, p, opts...)
 }
 
 func IntListArg(name string, minN, optionalN int, completor *Completor, opts ...ArgOpt) Arg {
-	return listArg(name, IntListType, minN, optionalN, completor, opts...)
-}
-
-func FloatArg(name string, required bool, completor *Completor, opts ...ArgOpt) Arg {
-	if !required {
-		return listArg(name, FloatType, 0, 1, completor, opts...)
+	p := &listArgProcessor{
+		minN:      minN,
+		optionalN: optionalN,
+		transform: func(sl []string) (*Value, error) {
+			var err error
+			var is []int
+			for _, s := range sl {
+				i, e := strconv.Atoi(s)
+				if e != nil {
+					// TODO: add failed to load field to values.
+					// These can be used in autocomplete if necessary.
+					err = e
+				}
+				is = append(is, i)
+			}
+			return IntListValue(is...), err
+		},
 	}
-	return listArg(name, FloatType, 1, 0, completor, opts...)
+	return newListArg(name, IntListType, minN, optionalN, completor, p, opts...)
 }
 
 func FloatListArg(name string, minN, optionalN int, completor *Completor, opts ...ArgOpt) Arg {
-	return listArg(name, FloatListType, minN, optionalN, completor, opts...)
+	p := &listArgProcessor{
+		minN:      minN,
+		optionalN: optionalN,
+		transform: func(sl []string) (*Value, error) {
+			var err error
+			var fs []float64
+			for _, s := range sl {
+				f, e := strconv.ParseFloat(s, 64)
+				if e != nil {
+					err = e
+				}
+				fs = append(fs, f)
+			}
+			return FloatListValue(fs...), err
+		},
+	}
+	return newListArg(name, IntListType, minN, optionalN, completor, p, opts...)
+}
+
+func IntArg(name string, required bool, completor *Completor, opts ...ArgOpt) Arg {
+	p := &intArgProcessor{
+		optional: !required,
+	}
+	if !required {
+		return newListArg(name, IntType, 0, 1, completor, p, opts...)
+	}
+	return newListArg(name, IntType, 1, 0, completor, p, opts...)
+}
+
+func FloatArg(name string, required bool, completor *Completor, opts ...ArgOpt) Arg {
+	p := &floatArgProcessor{
+		optional: !required,
+	}
+	if !required {
+		return newListArg(name, FloatType, 0, 1, completor, p, opts...)
+	}
+	return newListArg(name, FloatType, 1, 0, completor, p, opts...)
 }
 
 func BoolArg(name string, required bool, opts ...ArgOpt) Arg {
+	p := &boolArgProcessor{
+		optional: !required,
+	}
 	bc := BoolCompletor()
 	if required {
-		return listArg(name, BoolType, 1, 0, bc, opts...)
+		return newListArg(name, BoolType, 1, 0, bc, p, opts...)
 	}
-	return listArg(name, BoolType, 0, 1, bc, opts...)
+	return newListArg(name, BoolType, 0, 1, bc, p, opts...)
 }
 
-func listArg(name string, vt ValueType, minN, optionalN int, completor *Completor, opts ...ArgOpt) Arg {
+func newListArg(name string, vt ValueType, minN, optionalN int, completor *Completor, processor argTypeProcessor, opts ...ArgOpt) Arg {
 	return &genericArgs{
 		name: name,
 		argProcessor: &argProcessor{
-			MinN:      minN,
-			OptionalN: optionalN,
-			ValueType: vt,
-			argOpts:   opts,
+			MinN:             minN,
+			OptionalN:        optionalN,
+			ValueType:        vt,
+			argOpts:          opts,
+			argName:          name,
+			argTypeProcessor: processor,
 		},
 		completor: completor,
 	}

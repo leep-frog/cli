@@ -1,6 +1,6 @@
 package commands
 
-import (
+/*import (
 	"fmt"
 	"os"
 	"testing"
@@ -634,3 +634,4 @@ func (bc *basicCLI) Command() Command {
 func (bc *basicCLI) Option() *Option {
 	return nil
 }
+*/

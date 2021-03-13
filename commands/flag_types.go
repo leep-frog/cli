@@ -44,8 +44,12 @@ func (gf *genericFlag) Usage() []string {
 	return append([]string{flagString}, gf.argProcessor.Usage("FLAG_VALUE")...)
 }
 
-func (gf *genericFlag) ProcessArgs(args []string) (*Value, bool, error) {
-	return gf.argProcessor.ProcessArgs(args)
+func (gf *genericFlag) ProcessCompleteArgs(rawArgs []string, args, flags map[string]*Value) int {
+	return gf.argProcessor.ProcessCompleteArgs(rawArgs, args, flags)
+}
+
+func (gf *genericFlag) ProcessExecuteArgs(rawArgs []string, args, flags map[string]*Value) ([]string, bool, error) {
+	return gf.argProcessor.ProcessExecuteArgs(rawArgs, args, flags)
 }
 
 func StringFlag(name string, shortName rune, completor *Completor, opts ...ArgOpt) Flag {
@@ -73,7 +77,17 @@ func FloatListFlag(name string, shortName rune, minN, optionalN int, completor *
 }
 
 func BoolFlag(name string, shortName rune, opts ...ArgOpt) Flag {
-	return listFlag(name, shortName, BoolType, 0, 0, nil, opts...)
+	return &genericFlag{
+		name:      name,
+		shortName: shortName,
+		argProcessor: &argProcessor{
+			ValueType: BoolType,
+			argOpts:   opts,
+			flag:      true,
+			argName:   name,
+			boolFlag:  true,
+		},
+	}
 }
 
 func listFlag(name string, shortName rune, vt ValueType, minN, optionalN int, completor *Completor, opts ...ArgOpt) Flag {
@@ -85,6 +99,8 @@ func listFlag(name string, shortName rune, vt ValueType, minN, optionalN int, co
 			OptionalN: optionalN,
 			ValueType: vt,
 			argOpts:   opts,
+			flag:      true,
+			argName:   name,
 		},
 		completor: completor,
 	}
