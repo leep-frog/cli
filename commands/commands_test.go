@@ -613,7 +613,7 @@ func TestExecute(t *testing.T) {
 		{
 			name:       "not enough positional arguments",
 			args:       []string{"intermediate", "--state", "maine", "one"},
-			wantStderr: []string{`failed to process args: failed to process "syllable" arg: not enough arguments`},
+			wantStderr: []string{`failed to process args: not enough arguments`},
 		},
 		{
 			name:       "not enough positional arguments",
@@ -908,7 +908,7 @@ func TestExecute(t *testing.T) {
 		{
 			name:       "int list argument requires int values",
 			args:       []string{"valueTypes", "intList", "-10", "123.45"},
-			wantStderr: []string{`failed to process args: failed to process "req" arg: strconv.Atoi: parsing "123.45": invalid syntax`},
+			wantStderr: []string{`failed to process args: strconv.Atoi: parsing "123.45": invalid syntax`},
 		},
 		{
 			name:       "int list argument requires int values#2",
@@ -963,7 +963,7 @@ func TestExecute(t *testing.T) {
 		{
 			name:       "float list argument requires float values",
 			args:       []string{"valueTypes", "floatList", "-10", "twelve"},
-			wantStderr: []string{`failed to process args: failed to process "req" arg: strconv.ParseFloat: parsing "twelve": invalid syntax`},
+			wantStderr: []string{`failed to process args: strconv.ParseFloat: parsing "twelve": invalid syntax`},
 		},
 		{
 			name:       "float list flag requires float values",

@@ -354,18 +354,25 @@ func BoolArg(name string, required bool, opts ...ArgOpt) Arg {
 }
 
 func StringListArg(name string, minN, optionalN int, completor *Completor, opts ...ArgOpt) Arg {
-	p := &listArgProcessor{
+	return &listArgProcessor{
+		name:      name,
 		minN:      minN,
 		optionalN: optionalN,
+		completor: completor,
+		opts:      opts,
+		vt:        StringListType,
 		transform: func(s []string) (*Value, error) { return StringListValue(s...), nil },
 	}
-	return newListArg(name, StringListType, minN, optionalN, completor, p, opts...)
 }
 
 func IntListArg(name string, minN, optionalN int, completor *Completor, opts ...ArgOpt) Arg {
-	p := &listArgProcessor{
+	return &listArgProcessor{
+		name:      name,
 		minN:      minN,
 		optionalN: optionalN,
+		completor: completor,
+		opts:      opts,
+		vt:        IntListType,
 		transform: func(sl []string) (*Value, error) {
 			var err error
 			var is []int
@@ -381,13 +388,16 @@ func IntListArg(name string, minN, optionalN int, completor *Completor, opts ...
 			return IntListValue(is...), err
 		},
 	}
-	return newListArg(name, IntListType, minN, optionalN, completor, p, opts...)
 }
 
 func FloatListArg(name string, minN, optionalN int, completor *Completor, opts ...ArgOpt) Arg {
-	p := &listArgProcessor{
+	return &listArgProcessor{
+		name:      name,
 		minN:      minN,
 		optionalN: optionalN,
+		completor: completor,
+		opts:      opts,
+		vt:        FloatListType,
 		transform: func(sl []string) (*Value, error) {
 			var err error
 			var fs []float64
@@ -401,7 +411,6 @@ func FloatListArg(name string, minN, optionalN int, completor *Completor, opts .
 			return FloatListValue(fs...), err
 		},
 	}
-	return newListArg(name, IntListType, minN, optionalN, completor, p, opts...)
 }
 
 func newListArg(name string, vt ValueType, minN, optionalN int, completor *Completor, processor argTypeProcessor, opts ...ArgOpt) Arg {

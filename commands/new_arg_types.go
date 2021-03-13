@@ -70,9 +70,74 @@ func (sap *singleArgProcessor) ProcessComplete(s []string) (*Value, int) {
 }
 
 type listArgProcessor struct {
+	name      string
+	completor *Completor
+	opts      []ArgOpt
 	minN      int
 	optionalN int
 	transform func([]string) (*Value, error)
+	vt        ValueType
+}
+
+func (lap *listArgProcessor) ProcessExecuteArgs(rawArgs []string, args, flags map[string]*Value) ([]string, bool, error) {
+	v, n, err := lap.ProcessExecute(rawArgs)
+	args[lap.name] = v
+	for _, opt := range lap.opts {
+		if lap.vt != opt.ValueType() {
+			return nil, false, fmt.Errorf("option can only be bound to arguments with type %v", opt.ValueType())
+		}
+
+		if err := opt.Validate(v); err != nil {
+			return nil, false, fmt.Errorf("validation failed: %v", err)
+		}
+	}
+	return rawArgs[n:], false, err
+}
+
+func (lap *listArgProcessor) ProcessCompleteArgs(rawArgs []string, args, flags map[string]*Value) int {
+	v, n := lap.ProcessComplete(cp(rawArgs))
+	args[lap.name] = v
+	return n
+}
+
+func (lap *listArgProcessor) Name() string {
+	return lap.name
+}
+
+func (lap *listArgProcessor) Optional() bool {
+	return lap.minN == 0
+}
+
+func (lap *listArgProcessor) Complete(rawValue string, args, flags map[string]*Value) *Completion {
+	if lap.completor == nil {
+		return nil
+	}
+	return lap.completor.Complete(rawValue, args[lap.Name()], args, flags)
+}
+
+func (lap *listArgProcessor) Usage() []string {
+	ln := lap.minN
+	if lap.optionalN == UnboundedList {
+		ln += 1
+	} else {
+		ln += lap.optionalN
+	}
+
+	usage := make([]string, 0, ln)
+	for idx := 0; idx < lap.minN; idx++ {
+		usage = append(usage, strings.ReplaceAll(strings.ToUpper(lap.name), " ", "_"))
+	}
+
+	if lap.optionalN == UnboundedList {
+		usage = append(usage, fmt.Sprintf("[%s ...]", strings.ReplaceAll(strings.ToUpper(lap.name), " ", "_")))
+	} else if lap.optionalN > 0 {
+		usage = append(usage, "[")
+		for idx := 0; idx < lap.optionalN; idx++ {
+			usage = append(usage, strings.ReplaceAll(strings.ToUpper(lap.name), " ", "_"))
+		}
+		usage = append(usage, "]")
+	}
+	return usage
 }
 
 func (lap *listArgProcessor) ProcessExecute(s []string) (*Value, int, error) {
