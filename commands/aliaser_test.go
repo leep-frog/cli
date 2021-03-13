@@ -322,7 +322,7 @@ func TestAliasCommandExecution(t *testing.T) {
 			ac:   &basicCLI{},
 			args: []string{"d"},
 			wantStderr: []string{
-				`no argument provided for "ALIAS"`,
+				`not enough arguments provided for "ALIAS"`,
 			},
 		},
 		{

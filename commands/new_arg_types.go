@@ -19,6 +19,9 @@ type singleArgProcessor struct {
 }
 
 func (sap *singleArgProcessor) set(v *Value, args, flags map[string]*Value) {
+	if v == nil {
+		return
+	}
 	if sap.flag {
 		flags[sap.name] = v
 	} else {
@@ -31,7 +34,7 @@ func (sap *singleArgProcessor) ProcessExecute(s []string) (*Value, int, error) {
 		if sap.optional {
 			return nil, 0, nil
 		}
-		return nil, 0, fmt.Errorf("not enough arguments")
+		return nil, 0, fmt.Errorf("no argument provided for %q", sap.name)
 	}
 	v, err := sap.transform(s[0])
 	return v, 1, err
@@ -39,6 +42,9 @@ func (sap *singleArgProcessor) ProcessExecute(s []string) (*Value, int, error) {
 
 func (sap *singleArgProcessor) ProcessExecuteArgs(rawArgs []string, args, flags map[string]*Value) (int, error) {
 	v, n, err := sap.ProcessExecute(rawArgs)
+	if err != nil || (sap.optional && v == nil) {
+		return n, err
+	}
 	sap.set(v, args, flags)
 	for _, opt := range sap.opts {
 		if sap.vt != opt.ValueType() {
@@ -101,11 +107,31 @@ type listArgProcessor struct {
 }
 
 func (lap *listArgProcessor) set(v *Value, args, flags map[string]*Value) {
+	if v == nil {
+		return
+	}
 	if lap.flag {
 		flags[lap.name] = v
 	} else {
 		args[lap.name] = v
 	}
+}
+
+func (lap *listArgProcessor) ProcessExecute(s []string) (*Value, int, error) {
+	if len(s) < lap.minN {
+		return nil, len(s), fmt.Errorf("not enough arguments provided for %q", lap.name)
+	}
+	if len(s) == 0 {
+		return nil, 0, nil
+	}
+	var endIdx int
+	if lap.optionalN == UnboundedList {
+		endIdx = len(s)
+	} else {
+		endIdx = min(lap.minN+lap.optionalN, len(s))
+	}
+	v, err := lap.transform(s[:endIdx])
+	return v, endIdx, err
 }
 
 func (lap *listArgProcessor) ProcessExecuteArgs(rawArgs []string, args, flags map[string]*Value) (int, error) {
@@ -181,20 +207,6 @@ func (lap *listArgProcessor) Usage() []string {
 		usage = append(usage, "]")
 	}
 	return usage
-}
-
-func (lap *listArgProcessor) ProcessExecute(s []string) (*Value, int, error) {
-	if len(s) < lap.minN {
-		return nil, len(s), fmt.Errorf("not enough arguments")
-	}
-	var endIdx int
-	if lap.optionalN == UnboundedList {
-		endIdx = len(s)
-	} else {
-		endIdx = min(lap.minN+lap.optionalN, len(s))
-	}
-	v, err := lap.transform(s[:endIdx])
-	return v, endIdx, err
 }
 
 func (lap *listArgProcessor) ProcessCompleteArgs(rawArgs []string, args, flags map[string]*Value) int {

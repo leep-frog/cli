@@ -410,43 +410,26 @@ func (tc *TerminusCommand) Execute(cos CommandOS, args []string, oi *OptionInfo)
 			continue
 		}
 
-		// Ignore string values. That's only for complete.
-		//choppedArgs, _, err := flag.ProcessExecuteArgs(args[(idx+1):], argValues, flagValues)
 		n, err := flag.ProcessExecuteArgs(args[(idx+1):], argValues, flagValues)
 		if err != nil {
-			cos.Stderr("failed to process flags: %v", err)
+			cos.Stderr(err.Error())
 			return nil, false
 		}
 		args = append(args[:idx], args[idx+n+1:]...)
 	}
 
 	// Populate args
-	argIdx := 0
-	for idx := 0; idx < len(args); {
-		if argIdx >= len(tc.Args) {
-			cos.Stderr("extra unknown args (%v)", args[idx:])
-			return nil, false
-		}
-
-		arg := tc.Args[argIdx]
-		// Ignore string values. That's only for complete.
-		n, err := arg.ProcessExecuteArgs(args[idx:], argValues, flagValues)
-		//flaglessArgs, _, err
+	for _, arg := range tc.Args {
+		n, err := arg.ProcessExecuteArgs(args, argValues, flagValues)
 		if err != nil {
-			cos.Stderr("failed to process args: %v", err)
+			cos.Stderr(err.Error())
 			return nil, false
 		}
-		argIdx++
 		args = args[n:]
 	}
 
-	// Iterate to first non-optional argument
-	for ; argIdx < len(tc.Args) && tc.Args[argIdx].Optional(); argIdx++ {
-	}
-
-	if argIdx != len(tc.Args) {
-		nextArg := tc.Args[argIdx]
-		cos.Stderr("no argument provided for %q", nextArg.Name())
+	if len(args) != 0 {
+		cos.Stderr("extra unknown args (%v)", args)
 		return nil, false
 	}
 
@@ -531,23 +514,13 @@ func (tc *TerminusCommand) Complete(rawArgs []string) *Completion {
 
 positional:
 
-	if len(tc.Args) == 0 {
-		return nil
-	}
-
-	argIdx := 0
-	for idx := 0; idx < len(flaglessArgs); {
-		if argIdx >= len(tc.Args) {
-			return nil
+	args := flaglessArgs
+	for _, arg := range tc.Args {
+		n := arg.ProcessCompleteArgs(args, argValues, flagValues)
+		if n >= len(args) {
+			return arg.Complete(args[len(args)-1], argValues, flagValues)
 		}
-
-		arg := tc.Args[argIdx]
-		n := arg.ProcessCompleteArgs(flaglessArgs[idx:], argValues, flagValues)
-		if idx+n >= len(flaglessArgs) {
-			return arg.Complete(flaglessArgs[len(flaglessArgs)-1], argValues, flagValues)
-		}
-		argIdx++
-		flaglessArgs = append(flaglessArgs[:idx], flaglessArgs[(idx+n):]...)
+		args = args[n:]
 	}
 
 	return nil
