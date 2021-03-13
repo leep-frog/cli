@@ -4,7 +4,6 @@ package commands
 
 import (
 	"sort"
-	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -940,8 +939,8 @@ func TestExecute(t *testing.T) {
 		},
 		{
 			name:       "float flag requires float value",
-			args:       []string{"valueTypes", "float", "--vFlag", "3.5", "twelve"},
-			wantStderr: []string{`failed to process args: argument should be a float: strconv.ParseFloat: parsing "twelve": invalid syntax`},
+			args:       []string{"valueTypes", "float", "--vFlag", "twelve"},
+			wantStderr: []string{`failed to process flags: argument should be a float: strconv.ParseFloat: parsing "twelve": invalid syntax`},
 		},
 		// floatList argument type
 		{
@@ -2694,27 +2693,5 @@ func TestMiscellaneous(t *testing.T) {
 			"hey": StringListValue("o", "o"),
 		}
 		_ = c.Complete("yo", v, as, fs)
-	})
-
-	t.Run("invalid value type throws an error", func(t *testing.T) {
-		ap := argProcessor{
-			ValueType: -123,
-			MinN:      1,
-		}
-
-		arg := []string{"1"}
-		got, err := ap.Value(arg)
-		if got != nil {
-			t.Errorf("argProcessor.Value(%s) returned %v; want nil", arg, got)
-		}
-
-		if err == nil {
-			t.Errorf("argProcessor.Value(%s) returned nil err; want error", arg)
-		}
-
-		wantErr := "invalid value type: -123"
-		if !strings.Contains(err.Error(), wantErr) {
-			t.Errorf("argProcessor.Value(%s) returned err (%v); want error with message %q", arg, err, wantErr)
-		}
 	})
 }

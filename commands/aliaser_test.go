@@ -1,6 +1,6 @@
 package commands
 
-/*import (
+import (
 	"fmt"
 	"os"
 	"testing"
@@ -544,7 +544,7 @@ func TestAliasCommandExecution(t *testing.T) {
 			// Only check diff if we are expecting a change.
 			if wantChanged {
 				opts := []cmp.Option{
-					cmpopts.IgnoreUnexported(aliasCommand{}, genericArgs{}, testAliaser{}),
+					cmpopts.IgnoreUnexported(aliasCommand{}, testAliaser{}),
 					cmpopts.IgnoreFields(basicCLI{}, "Aliaser", "changed"),
 				}
 				if diff := cmp.Diff(test.want, test.ac, opts...); diff != "" {
@@ -634,4 +634,3 @@ func (bc *basicCLI) Command() Command {
 func (bc *basicCLI) Option() *Option {
 	return nil
 }
-*/

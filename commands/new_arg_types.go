@@ -11,7 +11,8 @@ type singleArgProcessor struct {
 	name      string
 	completor *Completor
 	vt        ValueType
-	opts      []ArgOpt
+	// TODO: opts don't need to be here. They can be done in commands.go
+	opts []ArgOpt
 	// TODO: make separate sub struct for arg vs field values.
 	flag      bool
 	shortName rune
@@ -25,23 +26,39 @@ func (sap *singleArgProcessor) set(v *Value, args, flags map[string]*Value) {
 	}
 }
 
-func (sap *singleArgProcessor) ProcessExecuteArgs(rawArgs []string, args, flags map[string]*Value) ([]string, bool, error) {
+func (sap *singleArgProcessor) ProcessExecute(s []string) (*Value, int, error) {
+	if len(s) == 0 {
+		if sap.optional {
+			return nil, 0, nil
+		}
+		return nil, 0, fmt.Errorf("not enough arguments")
+	}
+	v, err := sap.transform(s[0])
+	return v, 1, err
+}
+
+func (sap *singleArgProcessor) ProcessExecuteArgs(rawArgs []string, args, flags map[string]*Value) (int, error) {
 	v, n, err := sap.ProcessExecute(rawArgs)
 	sap.set(v, args, flags)
 	for _, opt := range sap.opts {
 		if sap.vt != opt.ValueType() {
-			return nil, false, fmt.Errorf("option can only be bound to arguments with type %v", opt.ValueType())
+			return 0, fmt.Errorf("option can only be bound to arguments with type %v", opt.ValueType())
 		}
 
 		if err := opt.Validate(v); err != nil {
-			return nil, false, fmt.Errorf("validation failed: %v", err)
+			return 0, fmt.Errorf("validation failed: %v", err)
 		}
 	}
-	return rawArgs[n:], false, err
+	return n, err
 }
 
 func (sap *singleArgProcessor) ProcessCompleteArgs(rawArgs []string, args, flags map[string]*Value) int {
-	v, n := sap.ProcessComplete(rawArgs)
+	var v *Value
+	var n int
+	if len(rawArgs) > 0 {
+		v, _ = sap.transform(rawArgs[0])
+		n = 1
+	}
 	sap.set(v, args, flags)
 	return n
 }
@@ -71,25 +88,6 @@ func (sap *singleArgProcessor) Complete(rawValue string, args, flags map[string]
 	return sap.completor.Complete(rawValue, v, args, flags)
 }
 
-func (sap *singleArgProcessor) ProcessExecute(s []string) (*Value, int, error) {
-	if len(s) == 0 {
-		if sap.optional {
-			return nil, 0, nil
-		}
-		return nil, 0, fmt.Errorf("not enough arguments")
-	}
-	v, err := sap.transform(s[0])
-	return v, 1, err
-}
-
-func (sap *singleArgProcessor) ProcessComplete(s []string) (*Value, int) {
-	if len(s) == 0 {
-		return nil, 0
-	}
-	v, _ := sap.transform(s[0])
-	return v, 1
-}
-
 type listArgProcessor struct {
 	name      string
 	completor *Completor
@@ -110,22 +108,19 @@ func (lap *listArgProcessor) set(v *Value, args, flags map[string]*Value) {
 	}
 }
 
-func (lap *listArgProcessor) ProcessExecuteArgs(rawArgs []string, args, flags map[string]*Value) ([]string, bool, error) {
+func (lap *listArgProcessor) ProcessExecuteArgs(rawArgs []string, args, flags map[string]*Value) (int, error) {
 	v, n, err := lap.ProcessExecute(cp(rawArgs))
-	/*if lap.flag {
-		n = min(n+1, len(rawArgs))
-	}*/
 	lap.set(v, args, flags)
 	for _, opt := range lap.opts {
 		if lap.vt != opt.ValueType() {
-			return nil, false, fmt.Errorf("option can only be bound to arguments with type %v", opt.ValueType())
+			return 0, fmt.Errorf("option can only be bound to arguments with type %v", opt.ValueType())
 		}
 
 		if err := opt.Validate(v); err != nil {
-			return nil, false, fmt.Errorf("validation failed: %v", err)
+			return 0, fmt.Errorf("validation failed: %v", err)
 		}
 	}
-	return rawArgs[n:], false, err
+	return n, err
 }
 
 func (lap *listArgProcessor) Name() string {
@@ -232,4 +227,38 @@ func (sap *singleArgProcessor) Usage() []string {
 		return []string{"[", strings.ToUpper(sap.name), "]"}
 	}
 	return []string{strings.ToUpper(sap.name)}
+}
+
+type boolFlagProcessor struct {
+	name      string
+	shortName rune
+}
+
+func (bfp *boolFlagProcessor) ProcessExecuteArgs(rawArgs []string, args, flags map[string]*Value) (int, error) {
+	flags[bfp.name] = BoolValue(true)
+	return 0, nil
+}
+
+func (bfp *boolFlagProcessor) Name() string {
+	return bfp.name
+}
+
+func (bfp *boolFlagProcessor) ShortName() rune {
+	return bfp.shortName
+}
+
+func (bfp *boolFlagProcessor) Complete(rawValue string, args, flags map[string]*Value) *Completion {
+	return nil
+}
+
+func (bfp *boolFlagProcessor) Usage() []string {
+	if bfp.shortName != 0 {
+		return []string{fmt.Sprintf("--%s|-%s", bfp.name, string(bfp.shortName))}
+	}
+	return []string{fmt.Sprintf("--%s", bfp.name)}
+}
+
+func (bfp *boolFlagProcessor) ProcessCompleteArgs(rawArgs []string, args, flags map[string]*Value) int {
+	flags[bfp.name] = BoolValue(true)
+	return 0
 }
