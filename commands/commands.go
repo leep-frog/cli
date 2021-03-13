@@ -599,5 +599,4 @@ type Flag interface {
 	ProcessExecuteArgs(rawArgs []string, args, flags map[string]*Value) ([]string, bool, error)
 	Complete(rawValue string, args, flags map[string]*Value) *Completion
 	Usage() []string
-	Length(*Value) int
 }

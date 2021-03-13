@@ -251,39 +251,6 @@ func (ap *argProcessor) Usage(name string) []string {
 	return usage
 }
 
-type genericArgs struct {
-	name         string
-	argProcessor *argProcessor
-	completor    *Completor
-}
-
-func (ga *genericArgs) Name() string {
-	return ga.name
-}
-
-func (ga *genericArgs) Optional() bool {
-	return ga.argProcessor.MinN == 0
-}
-
-func (ga *genericArgs) Complete(rawValue string, args, flags map[string]*Value) *Completion {
-	if ga.completor == nil {
-		return nil
-	}
-	return ga.completor.Complete(rawValue, args[ga.Name()], args, flags)
-}
-
-func (ga *genericArgs) ProcessCompleteArgs(rawArgs []string, args, flags map[string]*Value) int {
-	return ga.argProcessor.ProcessCompleteArgs(rawArgs, args, flags)
-}
-
-func (ga *genericArgs) ProcessExecuteArgs(rawArgs []string, args, flags map[string]*Value) ([]string, bool, error) {
-	return ga.argProcessor.ProcessExecuteArgs(rawArgs, args, flags)
-}
-
-func (ga *genericArgs) Usage() []string {
-	return ga.argProcessor.Usage(ga.Name())
-}
-
 func StringArg(name string, required bool, completor *Completor, opts ...ArgOpt) Arg {
 	return &singleArgProcessor{
 		name:      name,
@@ -339,16 +306,11 @@ func BoolArg(name string, required bool, opts ...ArgOpt) Arg {
 		vt:        FloatType,
 		optional:  !required,
 		transform: func(s string) (*Value, error) {
-			if b, ok := boolStringMap[s]; ok {
-				return BoolValue(b), nil
+			b, err := strconv.ParseBool(s)
+			if err != nil {
+				err = fmt.Errorf("argument should be a bool: %v", err)
 			}
-
-			var keys []string
-			for k := range boolStringMap {
-				keys = append(keys, k)
-			}
-			sort.Strings(keys)
-			return nil, fmt.Errorf("bool value must be one of %v", keys)
+			return BoolValue(b), err
 		},
 	}
 }
@@ -373,21 +335,23 @@ func IntListArg(name string, minN, optionalN int, completor *Completor, opts ...
 		completor: completor,
 		opts:      opts,
 		vt:        IntListType,
-		transform: func(sl []string) (*Value, error) {
-			var err error
-			var is []int
-			for _, s := range sl {
-				i, e := strconv.Atoi(s)
-				if e != nil {
-					// TODO: add failed to load field to values.
-					// These can be used in autocomplete if necessary.
-					err = e
-				}
-				is = append(is, i)
-			}
-			return IntListValue(is...), err
-		},
+		transform: intListTransform,
 	}
+}
+
+func intListTransform(sl []string) (*Value, error) {
+	var err error
+	var is []int
+	for _, s := range sl {
+		i, e := strconv.Atoi(s)
+		if e != nil {
+			// TODO: add failed to load field to values.
+			// These can be used in autocomplete if necessary.
+			err = e
+		}
+		is = append(is, i)
+	}
+	return IntListValue(is...), err
 }
 
 func FloatListArg(name string, minN, optionalN int, completor *Completor, opts ...ArgOpt) Arg {
@@ -398,32 +362,19 @@ func FloatListArg(name string, minN, optionalN int, completor *Completor, opts .
 		completor: completor,
 		opts:      opts,
 		vt:        FloatListType,
-		transform: func(sl []string) (*Value, error) {
-			var err error
-			var fs []float64
-			for _, s := range sl {
-				f, e := strconv.ParseFloat(s, 64)
-				if e != nil {
-					err = e
-				}
-				fs = append(fs, f)
-			}
-			return FloatListValue(fs...), err
-		},
+		transform: floatListTransform,
 	}
 }
 
-func newListArg(name string, vt ValueType, minN, optionalN int, completor *Completor, processor argTypeProcessor, opts ...ArgOpt) Arg {
-	return &genericArgs{
-		name: name,
-		argProcessor: &argProcessor{
-			MinN:             minN,
-			OptionalN:        optionalN,
-			ValueType:        vt,
-			argOpts:          opts,
-			argName:          name,
-			argTypeProcessor: processor,
-		},
-		completor: completor,
+func floatListTransform(sl []string) (*Value, error) {
+	var err error
+	var fs []float64
+	for _, s := range sl {
+		f, e := strconv.ParseFloat(s, 64)
+		if e != nil {
+			err = e
+		}
+		fs = append(fs, f)
 	}
+	return FloatListValue(fs...), err
 }

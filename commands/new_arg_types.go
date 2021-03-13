@@ -12,11 +12,22 @@ type singleArgProcessor struct {
 	completor *Completor
 	vt        ValueType
 	opts      []ArgOpt
+	// TODO: make separate sub struct for arg vs field values.
+	flag      bool
+	shortName rune
+}
+
+func (sap *singleArgProcessor) set(v *Value, args, flags map[string]*Value) {
+	if sap.flag {
+		flags[sap.name] = v
+	} else {
+		args[sap.name] = v
+	}
 }
 
 func (sap *singleArgProcessor) ProcessExecuteArgs(rawArgs []string, args, flags map[string]*Value) ([]string, bool, error) {
 	v, n, err := sap.ProcessExecute(rawArgs)
-	args[sap.name] = v
+	sap.set(v, args, flags)
 	for _, opt := range sap.opts {
 		if sap.vt != opt.ValueType() {
 			return nil, false, fmt.Errorf("option can only be bound to arguments with type %v", opt.ValueType())
@@ -31,12 +42,16 @@ func (sap *singleArgProcessor) ProcessExecuteArgs(rawArgs []string, args, flags 
 
 func (sap *singleArgProcessor) ProcessCompleteArgs(rawArgs []string, args, flags map[string]*Value) int {
 	v, n := sap.ProcessComplete(rawArgs)
-	args[sap.name] = v
+	sap.set(v, args, flags)
 	return n
 }
 
 func (sap *singleArgProcessor) Name() string {
 	return sap.name
+}
+
+func (sap *singleArgProcessor) ShortName() rune {
+	return sap.shortName
 }
 
 func (sap *singleArgProcessor) Optional() bool {
@@ -47,7 +62,13 @@ func (sap *singleArgProcessor) Complete(rawValue string, args, flags map[string]
 	if sap.completor == nil {
 		return nil
 	}
-	return sap.completor.Complete(rawValue, args[sap.Name()], args, flags)
+	var v *Value
+	if sap.flag {
+		v = flags[sap.name]
+	} else {
+		v = args[sap.name]
+	}
+	return sap.completor.Complete(rawValue, v, args, flags)
 }
 
 func (sap *singleArgProcessor) ProcessExecute(s []string) (*Value, int, error) {
@@ -77,11 +98,24 @@ type listArgProcessor struct {
 	optionalN int
 	transform func([]string) (*Value, error)
 	vt        ValueType
+	shortName rune
+	flag      bool
+}
+
+func (lap *listArgProcessor) set(v *Value, args, flags map[string]*Value) {
+	if lap.flag {
+		flags[lap.name] = v
+	} else {
+		args[lap.name] = v
+	}
 }
 
 func (lap *listArgProcessor) ProcessExecuteArgs(rawArgs []string, args, flags map[string]*Value) ([]string, bool, error) {
-	v, n, err := lap.ProcessExecute(rawArgs)
-	args[lap.name] = v
+	v, n, err := lap.ProcessExecute(cp(rawArgs))
+	/*if lap.flag {
+		n = min(n+1, len(rawArgs))
+	}*/
+	lap.set(v, args, flags)
 	for _, opt := range lap.opts {
 		if lap.vt != opt.ValueType() {
 			return nil, false, fmt.Errorf("option can only be bound to arguments with type %v", opt.ValueType())
@@ -94,14 +128,12 @@ func (lap *listArgProcessor) ProcessExecuteArgs(rawArgs []string, args, flags ma
 	return rawArgs[n:], false, err
 }
 
-func (lap *listArgProcessor) ProcessCompleteArgs(rawArgs []string, args, flags map[string]*Value) int {
-	v, n := lap.ProcessComplete(cp(rawArgs))
-	args[lap.name] = v
-	return n
-}
-
 func (lap *listArgProcessor) Name() string {
 	return lap.name
+}
+
+func (lap *listArgProcessor) ShortName() rune {
+	return lap.shortName
 }
 
 func (lap *listArgProcessor) Optional() bool {
@@ -112,7 +144,13 @@ func (lap *listArgProcessor) Complete(rawValue string, args, flags map[string]*V
 	if lap.completor == nil {
 		return nil
 	}
-	return lap.completor.Complete(rawValue, args[lap.Name()], args, flags)
+	var v *Value
+	if lap.flag {
+		v = flags[lap.name]
+	} else {
+		v = args[lap.name]
+	}
+	return lap.completor.Complete(rawValue, v, args, flags)
 }
 
 func (lap *listArgProcessor) Usage() []string {
@@ -124,16 +162,26 @@ func (lap *listArgProcessor) Usage() []string {
 	}
 
 	usage := make([]string, 0, ln)
+	n := strings.ReplaceAll(strings.ToUpper(lap.name), " ", "_")
+	if lap.flag {
+		n = "FLAG_VALUE"
+		if lap.shortName == 0 {
+			usage = append(usage, fmt.Sprintf("--%s", lap.name))
+		} else {
+			usage = append(usage, fmt.Sprintf("--%s|-%s", lap.name, string(lap.shortName)))
+		}
+	}
+
 	for idx := 0; idx < lap.minN; idx++ {
-		usage = append(usage, strings.ReplaceAll(strings.ToUpper(lap.name), " ", "_"))
+		usage = append(usage, n)
 	}
 
 	if lap.optionalN == UnboundedList {
-		usage = append(usage, fmt.Sprintf("[%s ...]", strings.ReplaceAll(strings.ToUpper(lap.name), " ", "_")))
+		usage = append(usage, fmt.Sprintf("[%s ...]", n))
 	} else if lap.optionalN > 0 {
 		usage = append(usage, "[")
 		for idx := 0; idx < lap.optionalN; idx++ {
-			usage = append(usage, strings.ReplaceAll(strings.ToUpper(lap.name), " ", "_"))
+			usage = append(usage, n)
 		}
 		usage = append(usage, "]")
 	}
@@ -154,6 +202,15 @@ func (lap *listArgProcessor) ProcessExecute(s []string) (*Value, int, error) {
 	return v, endIdx, err
 }
 
+func (lap *listArgProcessor) ProcessCompleteArgs(rawArgs []string, args, flags map[string]*Value) int {
+	v, n := lap.ProcessComplete(cp(rawArgs))
+	lap.set(v, args, flags)
+	/*if lap.flag {
+		n = min(n+1, len(rawArgs))
+	}*/
+	return n
+}
+
 func (lap *listArgProcessor) ProcessComplete(s []string) (*Value, int) {
 	var endIdx int
 	if len(s) < lap.minN || lap.optionalN == UnboundedList {
@@ -166,7 +223,12 @@ func (lap *listArgProcessor) ProcessComplete(s []string) (*Value, int) {
 }
 
 func (sap *singleArgProcessor) Usage() []string {
-	if sap.optional {
+	if sap.flag {
+		if sap.shortName == 0 {
+			return []string{fmt.Sprintf("--%s", sap.name), "FLAG_VALUE"}
+		}
+		return []string{fmt.Sprintf("--%s|-%s", sap.name, string(sap.shortName)), "FLAG_VALUE"}
+	} else if sap.optional {
 		return []string{"[", strings.ToUpper(sap.name), "]"}
 	}
 	return []string{strings.ToUpper(sap.name)}

@@ -603,7 +603,7 @@ func TestExecute(t *testing.T) {
 		{
 			name:       "not enough flag values",
 			args:       []string{"basic", "--state"},
-			wantStderr: []string{`failed to process flags: not enough arguments for "state" arg`},
+			wantStderr: []string{`failed to process flags: not enough arguments`},
 		},
 		{
 			name:       "too many positional arguments",
@@ -886,7 +886,7 @@ func TestExecute(t *testing.T) {
 		{
 			name:       "int flag requires int value",
 			args:       []string{"valueTypes", "int", "-v", "123.45"},
-			wantStderr: []string{`failed to process flags: failed to convert value: argument should be an integer: strconv.Atoi: parsing "123.45": invalid syntax`},
+			wantStderr: []string{`failed to process flags: argument should be an integer: strconv.Atoi: parsing "123.45": invalid syntax`},
 		},
 		// intList argument type
 		{
@@ -912,8 +912,8 @@ func TestExecute(t *testing.T) {
 		},
 		{
 			name:       "int list argument requires int values#2",
-			args:       []string{"valueTypes", "intList", "-v", "123.45"},
-			wantStderr: []string{`failed to process flags: failed to convert value: int required for IntList argument type: strconv.Atoi: parsing "123.45": invalid syntax`},
+			args:       []string{"valueTypes", "intList", "-v", "123.45", "67"},
+			wantStderr: []string{`failed to process flags: strconv.Atoi: parsing "123.45": invalid syntax`},
 		},
 		// float argument type
 		{
@@ -940,8 +940,8 @@ func TestExecute(t *testing.T) {
 		},
 		{
 			name:       "float flag requires float value",
-			args:       []string{"valueTypes", "float", "--vFlag", "twelve"},
-			wantStderr: []string{`failed to process flags: failed to convert value: argument should be a float: strconv.ParseFloat: parsing "twelve": invalid syntax`},
+			args:       []string{"valueTypes", "float", "--vFlag", "3.5", "twelve"},
+			wantStderr: []string{`failed to process args: argument should be a float: strconv.ParseFloat: parsing "twelve": invalid syntax`},
 		},
 		// floatList argument type
 		{
@@ -967,8 +967,8 @@ func TestExecute(t *testing.T) {
 		},
 		{
 			name:       "float list flag requires float values",
-			args:       []string{"valueTypes", "floatList", "-v", "twelve"},
-			wantStderr: []string{`failed to process flags: failed to convert value: float required for FloatList argument type: strconv.ParseFloat: parsing "twelve": invalid syntax`},
+			args:       []string{"valueTypes", "floatList", "-v", "3.5", "twelve"},
+			wantStderr: []string{`failed to process flags: strconv.ParseFloat: parsing "twelve": invalid syntax`},
 		},
 		// bool argument type
 		{
@@ -1000,7 +1000,7 @@ func TestExecute(t *testing.T) {
 		{
 			name:       "bool argument requires bool value",
 			args:       []string{"valueTypes", "bool", "maybe"},
-			wantStderr: []string{`failed to process args: bool value must be one of [f false t true]`},
+			wantStderr: []string{`failed to process args: argument should be a bool: strconv.ParseBool: parsing "maybe": invalid syntax`},
 		},
 		{
 			name:   "bool flag works",
@@ -2285,12 +2285,12 @@ func TestAutocomplete(t *testing.T) {
 		},
 		{
 			name:      "partial flag arguments are autocompleted",
-			args:      []string{"intermediate", "--state", ""},
-			fetchResp: []string{"california", "connecticut", "washington", "washington_dc"},
-			want:      []string{"california", "connecticut", "washington", "washington_dc"},
-			wantValue: StringListValue(""),
+			args:      []string{"intermediate", "--state", "c"},
+			fetchResp: []string{"california", "connecticut"},
+			want:      []string{"california", "connecticut"},
+			wantValue: StringListValue("c"),
 			wantCompleteFlags: map[string]*Value{
-				"state": StringListValue(""),
+				"state": StringListValue("c"),
 			},
 		},
 		{
